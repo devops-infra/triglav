@@ -106,6 +106,57 @@ jobs:
           fi
           git push origin --delete test/e2e-pr-custom-${{ github.run_id }} 2>/dev/null || true
 
+  pull-request-with-repository-path:
+    name: Pull request using custom checkout path and explicit repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository into custom path
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          path: work/repo
+
+      - name: Create test branch with a commit inside custom path
+        run: |
+          cd work/repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b test/e2e-pr-repo-path-${{ github.run_id }}
+          echo "E2E PR repository_path test $(date -u)" > e2e-pr-path-test.txt
+          git add e2e-pr-path-test.txt
+          git commit -m "[E2E] PR repository_path test"
+          git push origin test/e2e-pr-repo-path-${{ github.run_id }}
+
+      - name: Create pull request with repository and repository_path
+        id: pr
+        uses: devops-infra/action-pull-request@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          repository_path: work/repo
+          title: "[E2E] Repository path PR test - safe to close"
+          body: "Automated end-to-end test for repository_path input."
+          target_branch: master
+
+      - name: Verify outputs
+        run: |
+          echo "url=${{ steps.pr.outputs.url }}"
+          echo "pr_number=${{ steps.pr.outputs.pr_number }}"
+          test -n "${{ steps.pr.outputs.url }}"
+          test -n "${{ steps.pr.outputs.pr_number }}"
+
+      - name: Cleanup - close PR and delete test branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ steps.pr.outputs.pr_number }}"
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr close "$PR_NUMBER" --repo "${{ github.repository }}" 2>/dev/null || true
+          fi
+          cd work/repo
+          git push origin --delete test/e2e-pr-repo-path-${{ github.run_id }} 2>/dev/null || true
+
   pull-request-draft-with-diff:
     name: Draft pull request with get_diff enabled
     runs-on: ubuntu-latest
