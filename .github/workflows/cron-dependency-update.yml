@@ -1,0 +1,19 @@
+name: (Cron) Dependency Update
+
+on:
+  schedule:
+    - cron: 0 5 * * 1
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  packages: write
+  issues: read
+
+jobs:
+  call:
+    uses: devops-infra/.github/.github/workflows/reusable-cron-dependency-update.yml@v1
+    with:
+      profile: other
+    secrets: inherit
