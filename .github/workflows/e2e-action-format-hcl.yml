@@ -1,0 +1,135 @@
+name: (E2E) Action Format HCL
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  format-check-clean-files:
+    name: Check mode on already-formatted files passes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create well-formatted Terraform files
+        run: |
+          mkdir -p tests/e2e-hcl-clean
+          cat > tests/e2e-hcl-clean/main.tf << 'EOF'
+          variable "name" {
+            description = "Resource name"
+            type        = string
+          }
+
+          variable "region" {
+            description = "Cloud region"
+            type        = string
+            default     = "us-east-1"
+          }
+
+          locals {
+            label = "${var.name}-${var.region}"
+          }
+
+          output "label" {
+            value = local.label
+          }
+          EOF
+
+      - name: Check already-formatted files
+        uses: devops-infra/action-format-hcl@v1
+        with:
+          check: "true"
+          dir: tests/e2e-hcl-clean
+
+  format-write-mode:
+    name: Write mode formats and rewrites files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create Terraform files for write-mode formatting
+        run: |
+          mkdir -p tests/e2e-hcl-write
+          cat > tests/e2e-hcl-write/main.tf << 'EOF'
+          variable "name" {
+            description = "Resource name"
+            type        = string
+          }
+
+          locals {
+            upper_name = upper(var.name)
+          }
+
+          output "result" {
+            value = local.upper_name
+          }
+          EOF
+
+      - name: Run format in write mode
+        id: format
+        uses: devops-infra/action-format-hcl@v1
+        with:
+          write: "true"
+          diff: "true"
+          dir: tests/e2e-hcl-write
+
+      - name: Show files changed output
+        run: echo "files_changed=${{ steps.format.outputs.files_changed }}"
+
+  format-check-malformed-files:
+    name: Check mode on malformed files reports failure
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create malformed Terraform file
+        run: |
+          mkdir -p tests/e2e-hcl-malformed
+          printf 'variable "foo" {\ntype    =   string\ndescription="bad spacing"\n}\n' > tests/e2e-hcl-malformed/malformed.tf
+
+      - name: Check malformed files - expected to fail
+        id: check
+        uses: devops-infra/action-format-hcl@v1
+        continue-on-error: true
+        with:
+          check: "true"
+          dir: tests/e2e-hcl-malformed
+
+      - name: Verify action detected formatting issues
+        run: test "${{ steps.check.outcome }}" = "failure"
+
+  format-list-with-diff:
+    name: List and diff mode on formatted files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create Terraform files for list/diff mode
+        run: |
+          mkdir -p tests/e2e-hcl-list
+          cat > tests/e2e-hcl-list/variables.tf << 'EOF'
+          variable "env" {
+            description = "Deployment environment"
+            type        = string
+            default     = "dev"
+          }
+          EOF
+
+      - name: Run format in list and diff mode
+        id: format
+        uses: devops-infra/action-format-hcl@v1
+        with:
+          list: "true"
+          diff: "true"
+          write: "false"
+          dir: tests/e2e-hcl-list
+
+      - name: Show files changed output
+        run: echo "files_changed=${{ steps.format.outputs.files_changed }}"

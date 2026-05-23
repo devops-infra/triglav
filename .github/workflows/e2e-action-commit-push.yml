@@ -1,0 +1,139 @@
+name: (E2E) Action Commit Push
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  basic-commit:
+    name: Basic commit and push to new branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create test file
+        run: echo "E2E basic commit test $(date -u)" > e2e-test-file.txt
+
+      - name: Commit and push to new branch
+        id: commit
+        uses: devops-infra/action-commit-push@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          commit_message: "[E2E] Basic commit test"
+          target_branch: test/e2e-commit-push-basic-${{ github.run_id }}
+
+      - name: Verify outputs
+        run: |
+          echo "branch_name=${{ steps.commit.outputs.branch_name }}"
+          echo "files_changed=${{ steps.commit.outputs.files_changed }}"
+          test -n "${{ steps.commit.outputs.branch_name }}"
+          test -n "${{ steps.commit.outputs.files_changed }}"
+
+      - name: Cleanup - delete test branch
+        if: always()
+        run: git push origin --delete test/e2e-commit-push-basic-${{ github.run_id }} 2>/dev/null || true
+
+  commit-with-prefix-message:
+    name: Commit with custom prefix and message
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create test file
+        run: echo "E2E prefix message test $(date -u)" > e2e-prefix-test.txt
+
+      - name: Commit with custom prefix and message
+        id: commit
+        uses: devops-infra/action-commit-push@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          commit_prefix: "[E2E-PREFIX]"
+          commit_message: " Custom message test"
+          target_branch: test/e2e-commit-push-prefix-${{ github.run_id }}
+
+      - name: Verify outputs
+        run: |
+          echo "branch_name=${{ steps.commit.outputs.branch_name }}"
+          echo "files_changed=${{ steps.commit.outputs.files_changed }}"
+          test -n "${{ steps.commit.outputs.branch_name }}"
+          test -n "${{ steps.commit.outputs.files_changed }}"
+
+      - name: Cleanup - delete test branch
+        if: always()
+        run: git push origin --delete test/e2e-commit-push-prefix-${{ github.run_id }} 2>/dev/null || true
+
+  allow-empty-commit:
+    name: Allow empty commit with no file changes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Commit with no file changes to new branch
+        id: commit
+        uses: devops-infra/action-commit-push@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          allow_empty_commit: "true"
+          commit_message: "[E2E] Empty commit test"
+          target_branch: test/e2e-commit-push-empty-${{ github.run_id }}
+
+      - name: Verify branch output
+        run: |
+          echo "branch_name=${{ steps.commit.outputs.branch_name }}"
+          test -n "${{ steps.commit.outputs.branch_name }}"
+
+      - name: Cleanup - delete test branch
+        if: always()
+        run: git push origin --delete test/e2e-commit-push-empty-${{ github.run_id }} 2>/dev/null || true
+
+  amend-commit:
+    name: Amend previous commit with force-with-lease
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create initial branch with commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b test/e2e-commit-push-amend-${{ github.run_id }}
+          echo "v1" > e2e-amend-test.txt
+          git add e2e-amend-test.txt
+          git commit -m "E2E: initial commit for amend test"
+          git push origin test/e2e-commit-push-amend-${{ github.run_id }}
+
+      - name: Add more content to file
+        run: echo "v2" >> e2e-amend-test.txt
+
+      - name: Amend commit keeping original message
+        id: amend
+        uses: devops-infra/action-commit-push@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          amend: "true"
+          no_edit: "true"
+          force_with_lease: "true"
+
+      - name: Verify branch output
+        run: |
+          echo "branch_name=${{ steps.amend.outputs.branch_name }}"
+          test -n "${{ steps.amend.outputs.branch_name }}"
+
+      - name: Cleanup - delete test branch
+        if: always()
+        run: git push origin --delete test/e2e-commit-push-amend-${{ github.run_id }} 2>/dev/null || true

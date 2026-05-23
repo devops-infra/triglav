@@ -1,0 +1,40 @@
+name: (Cron) End-to-End Tests
+
+on:
+  schedule:
+    - cron: 0 6 * * 1
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  action-commit-push:
+    uses: ./.github/workflows/e2e-action-commit-push.yml
+    secrets: inherit
+
+  action-pull-request:
+    uses: ./.github/workflows/e2e-action-pull-request.yml
+    secrets: inherit
+
+  action-tflint:
+    uses: ./.github/workflows/e2e-action-tflint.yml
+    secrets: inherit
+
+  action-format-hcl:
+    uses: ./.github/workflows/e2e-action-format-hcl.yml
+    secrets: inherit
+
+  action-terraform-validate:
+    uses: ./.github/workflows/e2e-action-terraform-validate.yml
+    secrets: inherit
+
+  action-terraform-copy-vars:
+    uses: ./.github/workflows/e2e-action-terraform-copy-vars.yml
+    secrets: inherit
+
+  action-container-structure-test:
+    uses: ./.github/workflows/e2e-action-container-structure-test.yml
+    secrets: inherit

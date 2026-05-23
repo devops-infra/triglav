@@ -1,0 +1,84 @@
+name: (E2E) Action Terraform Validate
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-basic:
+    name: Validate valid Terraform configuration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create valid Terraform module
+        run: |
+          mkdir -p terraform/module_validate
+          cat > terraform/module_validate/main.tf << 'EOF'
+          variable "name" {
+            description = "Resource name"
+            type        = string
+          }
+
+          variable "env" {
+            description = "Deployment environment"
+            type        = string
+            default     = "dev"
+          }
+
+          locals {
+            full_name = "${var.name}-${var.env}"
+          }
+
+          output "full_name" {
+            value = local.full_name
+          }
+          EOF
+
+      - name: Validate all Terraform modules
+        uses: devops-infra/action-terraform-validate@v1
+        with:
+          dir_filter: terraform
+
+  validate-with-dir-filter:
+    name: Validate with explicit directory filter
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create multiple Terraform modules
+        run: |
+          mkdir -p terraform/module_a terraform/module_b
+
+          cat > terraform/module_a/main.tf << 'EOF'
+          variable "name" {
+            description = "Name of the resource"
+            type        = string
+          }
+
+          output "name_upper" {
+            value = upper(var.name)
+          }
+          EOF
+
+          cat > terraform/module_b/main.tf << 'EOF'
+          variable "count_value" {
+            description = "Number of instances"
+            type        = number
+            default     = 1
+          }
+
+          output "count_doubled" {
+            value = var.count_value * 2
+          }
+          EOF
+
+      - name: Validate only module_a
+        uses: devops-infra/action-terraform-validate@v1
+        with:
+          dir_filter: terraform/module_a

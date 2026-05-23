@@ -1,0 +1,145 @@
+name: (E2E) Action Container Structure Test
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  text-output:
+    name: Basic test with text output format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Pull Alpine test image
+        run: docker pull alpine:latest
+
+      - name: Run container structure tests with text output
+        id: cst
+        uses: devops-infra/action-container-structure-test@v1
+        with:
+          image: alpine:latest
+          config: tests/fixtures/container-structure-test/alpine.yml
+          output: text
+
+      - name: Verify test result outputs
+        run: |
+          echo "total=${{ steps.cst.outputs.total }}"
+          echo "passed=${{ steps.cst.outputs.passed }}"
+          echo "failed=${{ steps.cst.outputs.failed }}"
+          echo "exit_code=${{ steps.cst.outputs.exit_code }}"
+          test "${{ steps.cst.outputs.exit_code }}" = "0"
+          test "${{ steps.cst.outputs.failed }}" = "0"
+
+  json-output:
+    name: Test with JSON output format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Pull Alpine test image
+        run: docker pull alpine:latest
+
+      - name: Run container structure tests with JSON output
+        id: cst
+        uses: devops-infra/action-container-structure-test@v1
+        with:
+          image: alpine:latest
+          config: tests/fixtures/container-structure-test/alpine.yml
+          output: json
+
+      - name: Verify test result outputs
+        run: |
+          echo "total=${{ steps.cst.outputs.total }}"
+          echo "passed=${{ steps.cst.outputs.passed }}"
+          echo "exit_code=${{ steps.cst.outputs.exit_code }}"
+          test "${{ steps.cst.outputs.exit_code }}" = "0"
+
+  junit-output:
+    name: Test with JUnit output format and suite name
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Pull Alpine test image
+        run: docker pull alpine:latest
+
+      - name: Run container structure tests with JUnit output
+        id: cst
+        uses: devops-infra/action-container-structure-test@v1
+        with:
+          image: alpine:latest
+          config: tests/fixtures/container-structure-test/alpine.yml
+          output: junit
+          junit_suite_name: e2e-alpine-tests
+
+      - name: Verify test result outputs
+        run: |
+          echo "total=${{ steps.cst.outputs.total }}"
+          echo "passed=${{ steps.cst.outputs.passed }}"
+          echo "exit_code=${{ steps.cst.outputs.exit_code }}"
+          test "${{ steps.cst.outputs.exit_code }}" = "0"
+
+  test-report-file:
+    name: Test with report written to file
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Pull Alpine test image
+        run: docker pull alpine:latest
+
+      - name: Run container structure tests saving report to file
+        id: cst
+        uses: devops-infra/action-container-structure-test@v1
+        with:
+          image: alpine:latest
+          config: tests/fixtures/container-structure-test/alpine.yml
+          output: json
+          test_report: /tmp/cst-report.json
+
+      - name: Verify report file was created
+        run: test -f /tmp/cst-report.json
+
+      - name: Verify test result outputs
+        run: |
+          echo "total=${{ steps.cst.outputs.total }}"
+          echo "passed=${{ steps.cst.outputs.passed }}"
+          echo "exit_code=${{ steps.cst.outputs.exit_code }}"
+          test "${{ steps.cst.outputs.exit_code }}" = "0"
+
+  multiple-config-files:
+    name: Test with multiple config files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Pull Alpine test image
+        run: docker pull alpine:latest
+
+      - name: Run container structure tests with multiple config files
+        id: cst
+        uses: devops-infra/action-container-structure-test@v1
+        with:
+          image: alpine:latest
+          config: |
+            tests/fixtures/container-structure-test/alpine.yml
+            tests/fixtures/container-structure-test/alpine-extended.yml
+          output: text
+
+      - name: Verify combined test results
+        run: |
+          echo "total=${{ steps.cst.outputs.total }}"
+          echo "passed=${{ steps.cst.outputs.passed }}"
+          echo "failed=${{ steps.cst.outputs.failed }}"
+          echo "exit_code=${{ steps.cst.outputs.exit_code }}"
+          test "${{ steps.cst.outputs.exit_code }}" = "0"
+          test "${{ steps.cst.outputs.failed }}" = "0"

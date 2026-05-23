@@ -1,0 +1,161 @@
+name: (E2E) Action Terraform Copy Vars
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  basic-copy-vars:
+    name: Copy variables from central file to modules
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create Terraform module structure with all-variables file
+        run: |
+          mkdir -p terraform/module_a terraform/module_b
+
+          cat > all-variables.tf << 'EOF'
+          variable "region" {
+            description = "Cloud region for deployment"
+            type        = string
+            default     = "us-east-1"
+          }
+
+          variable "name" {
+            description = "Resource name"
+            type        = string
+          }
+
+          variable "env" {
+            description = "Deployment environment"
+            type        = string
+            default     = "dev"
+          }
+          EOF
+
+          cat > terraform/module_a/variables.tf << 'EOF'
+          variable "region" {
+            description = "Cloud region for deployment"
+            type        = string
+            default     = "us-east-1"
+          }
+          EOF
+
+          cat > terraform/module_b/variables.tf << 'EOF'
+          variable "name" {
+            description = "Resource name"
+            type        = string
+          }
+          EOF
+
+      - name: Copy variables from central file to all modules
+        id: copy
+        uses: devops-infra/action-terraform-copy-vars@v1
+        with:
+          dirs_with_modules: terraform
+          files_with_vars: variables.tf
+          all_vars_file: all-variables.tf
+          fail_on_missing: "false"
+
+      - name: Show files changed output
+        run: echo "files_changed=${{ steps.copy.outputs.files_changed }}"
+
+  copy-vars-custom-paths:
+    name: Copy variables with custom directory and file paths
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create custom Terraform structure
+        run: |
+          mkdir -p infra/services/api infra/services/db
+
+          cat > infra/all-vars.tf << 'EOF'
+          variable "app_name" {
+            description = "Application name"
+            type        = string
+          }
+
+          variable "version_tag" {
+            description = "Docker image tag"
+            type        = string
+            default     = "latest"
+          }
+          EOF
+
+          cat > infra/services/api/vars.tf << 'EOF'
+          variable "app_name" {
+            description = "Application name"
+            type        = string
+          }
+          EOF
+
+          cat > infra/services/db/vars.tf << 'EOF'
+          variable "app_name" {
+            description = "Application name"
+            type        = string
+          }
+          EOF
+
+      - name: Copy variables using custom paths
+        id: copy
+        uses: devops-infra/action-terraform-copy-vars@v1
+        with:
+          dirs_with_modules: infra/services
+          files_with_vars: vars.tf
+          all_vars_file: infra/all-vars.tf
+          fail_on_missing: "false"
+
+      - name: Show files changed output
+        run: echo "files_changed=${{ steps.copy.outputs.files_changed }}"
+
+  copy-vars-fail-on-missing:
+    name: Fail when module uses variable missing from central file
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create Terraform structure with missing variable
+        run: |
+          mkdir -p terraform/module_missing
+
+          cat > all-variables.tf << 'EOF'
+          variable "region" {
+            description = "Cloud region"
+            type        = string
+            default     = "us-east-1"
+          }
+          EOF
+
+          cat > terraform/module_missing/variables.tf << 'EOF'
+          variable "region" {
+            description = "Cloud region"
+            type        = string
+            default     = "us-east-1"
+          }
+
+          variable "missing_var" {
+            description = "This variable is not defined in all-variables.tf"
+            type        = string
+          }
+          EOF
+
+      - name: Run copy-vars with fail_on_missing - expected to fail
+        id: copy
+        uses: devops-infra/action-terraform-copy-vars@v1
+        continue-on-error: true
+        with:
+          dirs_with_modules: terraform
+          files_with_vars: variables.tf
+          all_vars_file: all-variables.tf
+          fail_on_missing: "true"
+
+      - name: Verify action failed on missing variable
+        run: test "${{ steps.copy.outcome }}" = "failure"

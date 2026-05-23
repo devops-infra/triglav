@@ -1,0 +1,160 @@
+name: (E2E) Action Pull Request
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  basic-pull-request:
+    name: Basic pull request creation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create test branch with a commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b test/e2e-pr-basic-${{ github.run_id }}
+          echo "E2E PR basic test $(date -u)" > e2e-pr-test.txt
+          git add e2e-pr-test.txt
+          git commit -m "[E2E] Basic PR test"
+          git push origin test/e2e-pr-basic-${{ github.run_id }}
+
+      - name: Create pull request
+        id: pr
+        uses: devops-infra/action-pull-request@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          title: "[E2E] Basic pull request test - safe to close"
+          body: "Automated end-to-end test pull request. Will be closed automatically."
+          target_branch: master
+
+      - name: Verify outputs
+        run: |
+          echo "url=${{ steps.pr.outputs.url }}"
+          echo "pr_number=${{ steps.pr.outputs.pr_number }}"
+          test -n "${{ steps.pr.outputs.url }}"
+          test -n "${{ steps.pr.outputs.pr_number }}"
+
+      - name: Cleanup - close PR and delete test branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ steps.pr.outputs.pr_number }}"
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr close "$PR_NUMBER" --repo "${{ github.repository }}" 2>/dev/null || true
+          fi
+          git push origin --delete test/e2e-pr-basic-${{ github.run_id }} 2>/dev/null || true
+
+  pull-request-with-title-body:
+    name: Pull request with custom title and body
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create test branch with a commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b test/e2e-pr-custom-${{ github.run_id }}
+          echo "E2E PR custom title/body test $(date -u)" > e2e-pr-custom-test.txt
+          git add e2e-pr-custom-test.txt
+          git commit -m "[E2E] Custom title/body PR test"
+          git push origin test/e2e-pr-custom-${{ github.run_id }}
+
+      - name: Create pull request with custom title and body
+        id: pr
+        uses: devops-infra/action-pull-request@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          title: "[E2E] Custom title test - safe to close"
+          body: |
+            Automated end-to-end test.
+            Testing custom title and body fields.
+            Safe to close automatically.
+          target_branch: master
+          allow_no_diff: "false"
+
+      - name: Verify outputs
+        run: |
+          echo "url=${{ steps.pr.outputs.url }}"
+          echo "pr_number=${{ steps.pr.outputs.pr_number }}"
+          test -n "${{ steps.pr.outputs.url }}"
+          test -n "${{ steps.pr.outputs.pr_number }}"
+
+      - name: Cleanup - close PR and delete test branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ steps.pr.outputs.pr_number }}"
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr close "$PR_NUMBER" --repo "${{ github.repository }}" 2>/dev/null || true
+          fi
+          git push origin --delete test/e2e-pr-custom-${{ github.run_id }} 2>/dev/null || true
+
+  pull-request-draft-with-diff:
+    name: Draft pull request with get_diff enabled
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create test branch with a commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b test/e2e-pr-draft-${{ github.run_id }}
+          echo "E2E draft PR test $(date -u)" > e2e-pr-draft-test.txt
+          git add e2e-pr-draft-test.txt
+          git commit -m "[E2E] Draft PR with diff test"
+          git push origin test/e2e-pr-draft-${{ github.run_id }}
+
+      - name: Create draft pull request with diff injection
+        id: pr
+        uses: devops-infra/action-pull-request@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          title: "[E2E] Draft PR with diff - safe to close"
+          body: |
+            Automated end-to-end test.
+            <!-- Diff commits - START -->
+            <!-- Diff commits - END -->
+            <!-- Diff files - START -->
+            <!-- Diff files - END -->
+          target_branch: master
+          draft: "true"
+          get_diff: "true"
+
+      - name: Verify outputs
+        run: |
+          echo "url=${{ steps.pr.outputs.url }}"
+          echo "pr_number=${{ steps.pr.outputs.pr_number }}"
+          test -n "${{ steps.pr.outputs.url }}"
+          test -n "${{ steps.pr.outputs.pr_number }}"
+
+      - name: Cleanup - close PR and delete test branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ steps.pr.outputs.pr_number }}"
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr close "$PR_NUMBER" --repo "${{ github.repository }}" 2>/dev/null || true
+          fi
+          git push origin --delete test/e2e-pr-draft-${{ github.run_id }} 2>/dev/null || true

@@ -1,0 +1,112 @@
+name: (E2E) Action TFLint
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  basic-tflint:
+    name: Basic TFLint on valid Terraform files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create valid Terraform module
+        run: |
+          mkdir -p terraform/module_basic
+          cat > terraform/module_basic/main.tf << 'EOF'
+          variable "name" {
+            description = "Resource name"
+            type        = string
+          }
+
+          locals {
+            upper_name = upper(var.name)
+          }
+
+          output "upper_name" {
+            value = local.upper_name
+          }
+          EOF
+
+      - name: Run TFLint on all Terraform directories
+        uses: devops-infra/action-tflint@v1
+        with:
+          dir_filter: terraform
+          run_init: "false"
+          fail_on_changes: "false"
+
+  tflint-with-dir-filter:
+    name: TFLint with specific directory filter
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create multiple Terraform modules
+        run: |
+          mkdir -p terraform/module_aws terraform/module_gcp
+
+          cat > terraform/module_aws/main.tf << 'EOF'
+          variable "region" {
+            description = "AWS region"
+            type        = string
+            default     = "us-east-1"
+          }
+
+          output "region" {
+            value = var.region
+          }
+          EOF
+
+          cat > terraform/module_gcp/main.tf << 'EOF'
+          variable "project" {
+            description = "GCP project ID"
+            type        = string
+          }
+
+          output "project" {
+            value = var.project
+          }
+          EOF
+
+      - name: Run TFLint only on aws module
+        uses: devops-infra/action-tflint@v1
+        with:
+          dir_filter: terraform/module_aws
+          run_init: "false"
+          fail_on_changes: "false"
+
+  tflint-no-fail-on-changes:
+    name: TFLint with fail_on_changes disabled
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create Terraform module with lint warning
+        run: |
+          mkdir -p terraform/module_warn
+
+          cat > terraform/module_warn/main.tf << 'EOF'
+          variable "unused_var" {
+            description = "This variable is intentionally unused to trigger a warning"
+            type        = string
+            default     = "unused"
+          }
+
+          output "constant" {
+            value = "hello"
+          }
+          EOF
+
+      - name: Run TFLint without failing on findings
+        uses: devops-infra/action-tflint@v1
+        with:
+          dir_filter: terraform/module_warn
+          run_init: "false"
+          fail_on_changes: "false"
