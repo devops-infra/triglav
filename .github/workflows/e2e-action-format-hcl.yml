@@ -92,6 +92,7 @@ jobs:
         uses: devops-infra/action-format-hcl@v1
         with:
           check: "true"
+          write: "false"
           dir: tests/e2e-hcl-clean
 
       - name: Check via docker image (preview)
@@ -106,6 +107,7 @@ jobs:
           docker pull "${ACTION_IMAGE}"
           docker run --rm \
             -e INPUT_CHECK=true \
+            -e INPUT_WRITE=false \
             -e INPUT_DIR=tests/e2e-hcl-clean \
             -v "$PWD:/github/workspace" \
             -w /github/workspace \
@@ -192,6 +194,7 @@ jobs:
         continue-on-error: true
         with:
           check: "true"
+          write: "false"
           dir: tests/e2e-hcl-malformed
 
       - name: Check malformed files via docker image - expected to fail
@@ -207,6 +210,7 @@ jobs:
           set +e
           docker run --rm \
             -e INPUT_CHECK=true \
+            -e INPUT_WRITE=false \
             -e INPUT_DIR=tests/e2e-hcl-malformed \
             -v "$PWD:/github/workspace" \
             -w /github/workspace \
