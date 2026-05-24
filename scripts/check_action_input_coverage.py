@@ -36,13 +36,25 @@ def parse_action_inputs(action_file: Path) -> list[str]:
         if indent <= inputs_indent:
             break
 
-        match = re.match(r"^(\s+)([A-Za-z0-9_]+):\s*$", line)
+        match = re.match(
+            r"^(?P<indent>\s+)"
+            r"(?:\"(?P<double_quoted>[^\"]+)\"|"
+            r"'(?P<single_quoted>[^']+)'|"
+            r"(?P<plain>[A-Za-z0-9_-]+))"
+            r":\s*$",
+            line,
+        )
         if not match:
             continue
 
-        key_indent = len(match.group(1))
+        key_indent = len(match.group("indent"))
         if key_indent == inputs_indent + 2:
-            keys.append(match.group(2))
+            key = (
+                match.group("double_quoted")
+                or match.group("single_quoted")
+                or match.group("plain")
+            )
+            keys.append(key)
 
     return keys
 
@@ -57,11 +69,20 @@ def read_text_if_possible(path: Path) -> str:
         return ""
 
 
+def normalize_input_env_name(input_name: str) -> str:
+    """Normalize an action input name to INPUT_* environment variable form."""
+    normalized = re.sub(r"[^A-Za-z0-9]", "_", input_name).upper()
+    return f"INPUT_{normalized}"
+
+
 def input_is_covered(input_name: str, corpus: str) -> bool:
     """Check whether an input name appears in test corpus directly or as INPUT_* env."""
     escaped = re.escape(input_name)
-    env_name = re.escape(f"INPUT_{input_name.upper()}")
-    pattern = re.compile(rf"\b{escaped}\b|\b{env_name}\b")
+    env_name = re.escape(normalize_input_env_name(input_name))
+    pattern = re.compile(
+        rf"(?<![A-Za-z0-9_]){escaped}(?![A-Za-z0-9_])"
+        rf"|(?<![A-Z0-9_]){env_name}(?![A-Z0-9_])"
+    )
     return bool(pattern.search(corpus))
 
 
