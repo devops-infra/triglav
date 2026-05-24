@@ -1,0 +1,21 @@
+schemaVersion: '2.0.0'
+
+commandTests:
+  - name: Alpine OS identification
+    command: cat
+    args: [/etc/os-release]
+    expectedOutput: [ID=alpine]
+
+  - name: Shell available
+    command: /bin/sh
+    args: [-c, echo ok]
+    expectedOutput: [ok]
+
+fileExistenceTests:
+  - name: /etc/os-release exists
+    path: /etc/os-release
+    shouldExist: true
+
+  - name: /bin/sh exists
+    path: /bin/sh
+    shouldExist: true

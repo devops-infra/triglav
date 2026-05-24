@@ -1,0 +1,278 @@
+name: (E2E) Action Terraform Copy Vars
+
+on:
+  workflow_call:
+    inputs:
+      mode:
+        description: Execution mode (ref or image)
+        required: false
+        type: string
+        default: ref
+      image_tag:
+        description: Image tag for docker mode (for example v1.2.3-test or v1.2.3-rc)
+        required: false
+        type: string
+        default: ''
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Execution mode (ref or image)
+        required: false
+        default: ref
+        type: choice
+        options:
+          - ref
+          - image
+      image_tag:
+        description: Image tag for docker mode (for example v1.2.3-test or v1.2.3-rc)
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    name: Validate workflow inputs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate mode input
+        run: |
+          case "${{ inputs.mode }}" in
+            ref|image) ;;
+            *)
+              echo "Unsupported mode '${{ inputs.mode }}'. Expected 'ref' or 'image'."
+              exit 1
+              ;;
+          esac
+
+  basic-copy-vars:
+    name: Copy variables from central file to modules
+    needs: [preflight]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Create Terraform module structure with all-variables file
+        run: |
+          mkdir -p terraform/module_a terraform/module_b
+
+          cat > all-variables.tf << 'EOF'
+          variable "region" {
+            description = "Cloud region for deployment"
+            type        = string
+            default     = "us-east-1"
+          }
+
+          variable "name" {
+            description = "Resource name"
+            type        = string
+          }
+
+          variable "env" {
+            description = "Deployment environment"
+            type        = string
+            default     = "dev"
+          }
+          EOF
+
+          cat > terraform/module_a/variables.tf << 'EOF'
+          variable "region" {
+            description = "Cloud region for deployment"
+            type        = string
+            default     = "us-east-1"
+          }
+          EOF
+
+          cat > terraform/module_b/variables.tf << 'EOF'
+          variable "name" {
+            description = "Resource name"
+            type        = string
+          }
+          EOF
+
+      - name: Copy variables from central file to all modules
+        if: ${{ inputs.mode == 'ref' }}
+        id: copy
+        uses: devops-infra/action-terraform-copy-vars@v1
+        with:
+          dirs_with_modules: terraform
+          files_with_vars: variables.tf
+          all_vars_file: all-variables.tf
+          fail_on_missing: "false"
+
+      - name: Copy vars via docker image (preview)
+        if: ${{ inputs.mode == 'image' }}
+        env:
+          ACTION_IMAGE: devopsinfra/action-terraform-copy-vars:${{ inputs.image_tag }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          docker pull "${ACTION_IMAGE}"
+          docker run --rm \
+            -e INPUT_DIRS_WITH_MODULES=terraform \
+            -e INPUT_FILES_WITH_VARS=variables.tf \
+            -e INPUT_ALL_VARS_FILE=all-variables.tf \
+            -e INPUT_FAIL_ON_MISSING=false \
+            -v "$PWD:/github/workspace" \
+            -w /github/workspace \
+            "${ACTION_IMAGE}"
+
+      - name: Show files changed output
+        if: ${{ inputs.mode == 'ref' }}
+        run: echo "files_changed=${{ steps.copy.outputs.files_changed }}"
+
+      - name: Verify image mode execution
+        if: ${{ inputs.mode == 'image' }}
+        run: grep -q 'variable "env"' terraform/module_a/variables.tf
+
+  copy-vars-custom-paths:
+    name: Copy variables with custom directory and file paths
+    needs: [preflight]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Create custom Terraform structure
+        run: |
+          mkdir -p infra/services/api infra/services/db
+
+          cat > infra/all-vars.tf << 'EOF'
+          variable "app_name" {
+            description = "Application name"
+            type        = string
+          }
+
+          variable "version_tag" {
+            description = "Docker image tag"
+            type        = string
+            default     = "latest"
+          }
+          EOF
+
+          cat > infra/services/api/vars.tf << 'EOF'
+          variable "app_name" {
+            description = "Application name"
+            type        = string
+          }
+          EOF
+
+          cat > infra/services/db/vars.tf << 'EOF'
+          variable "app_name" {
+            description = "Application name"
+            type        = string
+          }
+          EOF
+
+      - name: Copy variables using custom paths
+        if: ${{ inputs.mode == 'ref' }}
+        id: copy
+        uses: devops-infra/action-terraform-copy-vars@v1
+        with:
+          dirs_with_modules: infra/services
+          files_with_vars: vars.tf
+          all_vars_file: infra/all-vars.tf
+          fail_on_missing: "false"
+
+      - name: Copy vars via docker image (preview)
+        if: ${{ inputs.mode == 'image' }}
+        env:
+          ACTION_IMAGE: devopsinfra/action-terraform-copy-vars:${{ inputs.image_tag }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          docker pull "${ACTION_IMAGE}"
+          docker run --rm \
+            -e INPUT_DIRS_WITH_MODULES=infra/services \
+            -e INPUT_FILES_WITH_VARS=vars.tf \
+            -e INPUT_ALL_VARS_FILE=infra/all-vars.tf \
+            -e INPUT_FAIL_ON_MISSING=false \
+            -v "$PWD:/github/workspace" \
+            -w /github/workspace \
+            "${ACTION_IMAGE}"
+
+      - name: Show files changed output
+        if: ${{ inputs.mode == 'ref' }}
+        run: echo "files_changed=${{ steps.copy.outputs.files_changed }}"
+
+      - name: Verify image mode execution
+        if: ${{ inputs.mode == 'image' }}
+        run: grep -q 'variable "version_tag"' infra/services/api/vars.tf
+
+  copy-vars-fail-on-missing:
+    name: Fail when module uses variable missing from central file
+    needs: [preflight]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Create Terraform structure with missing variable
+        run: |
+          mkdir -p terraform/module_missing
+
+          cat > all-variables.tf << 'EOF'
+          variable "region" {
+            description = "Cloud region"
+            type        = string
+            default     = "us-east-1"
+          }
+          EOF
+
+          cat > terraform/module_missing/variables.tf << 'EOF'
+          variable "region" {
+            description = "Cloud region"
+            type        = string
+            default     = "us-east-1"
+          }
+
+          variable "missing_var" {
+            description = "This variable is not defined in all-variables.tf"
+            type        = string
+          }
+          EOF
+
+      - name: Run copy-vars with fail_on_missing - expected to fail
+        if: ${{ inputs.mode == 'ref' }}
+        id: copy
+        uses: devops-infra/action-terraform-copy-vars@v1
+        continue-on-error: true
+        with:
+          dirs_with_modules: terraform
+          files_with_vars: variables.tf
+          all_vars_file: all-variables.tf
+          fail_on_missing: "true"
+
+      - name: Copy vars via docker image (preview)
+        if: ${{ inputs.mode == 'image' }}
+        env:
+          ACTION_IMAGE: devopsinfra/action-terraform-copy-vars:${{ inputs.image_tag }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          docker pull "${ACTION_IMAGE}"
+          set +e
+          docker run --rm \
+            -e INPUT_DIRS_WITH_MODULES=terraform \
+            -e INPUT_FILES_WITH_VARS=variables.tf \
+            -e INPUT_ALL_VARS_FILE=all-variables.tf \
+            -e INPUT_FAIL_ON_MISSING=true \
+            -v "$PWD:/github/workspace" \
+            -w /github/workspace \
+            "${ACTION_IMAGE}"
+          rc=$?
+          set -e
+          test "$rc" -ne 0
+
+      - name: Verify action failed on missing variable
+        if: ${{ inputs.mode == 'ref' }}
+        run: test "${{ steps.copy.outcome }}" = "failure"

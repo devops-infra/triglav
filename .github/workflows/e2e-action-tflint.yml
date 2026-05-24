@@ -1,0 +1,324 @@
+name: (E2E) Action TFLint
+
+on:
+  workflow_call:
+    inputs:
+      mode:
+        description: Execution mode (ref or image)
+        required: false
+        type: string
+        default: ref
+      image_tag:
+        description: Image tag for docker mode (for example v1.2.3-test or v1.2.3-rc)
+        required: false
+        type: string
+        default: ''
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Execution mode (ref or image)
+        required: false
+        default: ref
+        type: choice
+        options:
+          - ref
+          - image
+      image_tag:
+        description: Image tag for docker mode (for example v1.2.3-test or v1.2.3-rc)
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    name: Validate workflow inputs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate mode input
+        run: |
+          case "${{ inputs.mode }}" in
+            ref|image) ;;
+            *)
+              echo "Unsupported mode '${{ inputs.mode }}'. Expected 'ref' or 'image'."
+              exit 1
+              ;;
+          esac
+
+  basic-tflint:
+    name: Basic TFLint on valid Terraform files
+    needs: [preflight]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Create valid Terraform module
+        run: |
+          mkdir -p terraform/module_basic
+          cat > terraform/module_basic/main.tf << 'EOF'
+          variable "name" {
+            description = "Resource name"
+            type        = string
+          }
+
+          locals {
+            upper_name = upper(var.name)
+          }
+
+          output "upper_name" {
+            value = local.upper_name
+          }
+          EOF
+
+      - name: Run TFLint on all Terraform directories
+        if: ${{ inputs.mode == 'ref' }}
+        uses: devops-infra/action-tflint@v1
+        with:
+          dir_filter: terraform
+          run_init: "false"
+          fail_on_changes: "false"
+
+      - name: Run TFLint from docker image (preview)
+        if: ${{ inputs.mode == 'image' }}
+        env:
+          ACTION_IMAGE: devopsinfra/action-tflint:${{ inputs.image_tag }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          docker pull "${ACTION_IMAGE}"
+          docker run --rm \
+            -e INPUT_DIR_FILTER=terraform \
+            -e INPUT_RUN_INIT=false \
+            -e INPUT_FAIL_ON_CHANGES=false \
+            -v "$PWD:/github/workspace" \
+            -w /github/workspace \
+            "${ACTION_IMAGE}"
+
+  tflint-with-dir-filter:
+    name: TFLint with specific directory filter
+    needs: [preflight]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Create multiple Terraform modules
+        run: |
+          mkdir -p terraform/module_aws terraform/module_gcp
+
+          cat > terraform/module_aws/main.tf << 'EOF'
+          variable "region" {
+            description = "AWS region"
+            type        = string
+            default     = "us-east-1"
+          }
+
+          output "region" {
+            value = var.region
+          }
+          EOF
+
+          cat > terraform/module_gcp/main.tf << 'EOF'
+          variable "project" {
+            description = "GCP project ID"
+            type        = string
+          }
+
+          output "project" {
+            value = var.project
+          }
+          EOF
+
+      - name: Run TFLint only on aws module
+        if: ${{ inputs.mode == 'ref' }}
+        uses: devops-infra/action-tflint@v1
+        with:
+          dir_filter: terraform/module_aws
+          run_init: "false"
+          fail_on_changes: "false"
+
+      - name: Run TFLint from docker image (preview)
+        if: ${{ inputs.mode == 'image' }}
+        env:
+          ACTION_IMAGE: devopsinfra/action-tflint:${{ inputs.image_tag }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          docker pull "${ACTION_IMAGE}"
+          docker run --rm \
+            -e INPUT_DIR_FILTER=terraform/module_aws \
+            -e INPUT_RUN_INIT=false \
+            -e INPUT_FAIL_ON_CHANGES=false \
+            -v "$PWD:/github/workspace" \
+            -w /github/workspace \
+            "${ACTION_IMAGE}"
+
+  tflint-no-fail-on-changes:
+    name: TFLint with fail_on_changes disabled
+    needs: [preflight]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Create Terraform module with lint warning
+        run: |
+          mkdir -p terraform/module_warn
+
+          cat > terraform/module_warn/main.tf << 'EOF'
+          variable "unused_var" {
+            description = "This variable is intentionally unused to trigger a warning"
+            type        = string
+            default     = "unused"
+          }
+
+          output "constant" {
+            value = "hello"
+          }
+          EOF
+
+      - name: Run TFLint without failing on findings
+        if: ${{ inputs.mode == 'ref' }}
+        uses: devops-infra/action-tflint@v1
+        with:
+          dir_filter: terraform/module_warn
+          run_init: "false"
+          fail_on_changes: "false"
+
+      - name: Run TFLint from docker image (preview)
+        if: ${{ inputs.mode == 'image' }}
+        env:
+          ACTION_IMAGE: devopsinfra/action-tflint:${{ inputs.image_tag }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          docker pull "${ACTION_IMAGE}"
+          docker run --rm \
+            -e INPUT_DIR_FILTER=terraform/module_warn \
+            -e INPUT_RUN_INIT=false \
+            -e INPUT_FAIL_ON_CHANGES=false \
+            -v "$PWD:/github/workspace" \
+            -w /github/workspace \
+            "${ACTION_IMAGE}"
+
+  tflint-with-custom-config:
+    name: TFLint with explicit tflint_config
+    needs: [preflight]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Create Terraform module and custom TFLint config
+        run: |
+          mkdir -p terraform/module_custom
+          cat > terraform/module_custom/main.tf << 'EOF'
+          terraform {
+            required_version = ">= 1.5.0"
+          }
+
+          variable "name" {
+            type = string
+          }
+
+          output "name" {
+            value = var.name
+          }
+          EOF
+
+          cat > terraform/.tflint.custom.hcl << 'EOF'
+          config {
+            module = false
+            force  = false
+          }
+          EOF
+
+      - name: Run TFLint with custom config path
+        if: ${{ inputs.mode == 'ref' }}
+        uses: devops-infra/action-tflint@v1
+        with:
+          dir_filter: terraform/module_custom
+          run_init: "false"
+          fail_on_changes: "false"
+          tflint_config: terraform/.tflint.custom.hcl
+
+      - name: Run TFLint from docker image (preview)
+        if: ${{ inputs.mode == 'image' }}
+        env:
+          ACTION_IMAGE: devopsinfra/action-tflint:${{ inputs.image_tag }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          docker pull "${ACTION_IMAGE}"
+          docker run --rm \
+            -e INPUT_DIR_FILTER=terraform/module_custom \
+            -e INPUT_RUN_INIT=false \
+            -e INPUT_FAIL_ON_CHANGES=false \
+            -e INPUT_TFLINT_CONFIG=terraform/.tflint.custom.hcl \
+            -v "$PWD:/github/workspace" \
+            -w /github/workspace \
+            "${ACTION_IMAGE}"
+
+  tflint-with-custom-params:
+    name: TFLint with custom tflint_params
+    needs: [preflight]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Create Terraform module
+        run: |
+          mkdir -p terraform/module_params
+          cat > terraform/module_params/main.tf << 'EOF'
+          terraform {
+            required_version = ">= 1.5.0"
+          }
+
+          variable "name" {
+            type = string
+          }
+
+          output "name" {
+            value = var.name
+          }
+          EOF
+
+      - name: Run TFLint with custom params
+        if: ${{ inputs.mode == 'ref' }}
+        uses: devops-infra/action-tflint@v1
+        with:
+          dir_filter: terraform/module_params
+          run_init: "false"
+          fail_on_changes: "false"
+          tflint_params: "--minimum-failure-severity=error"
+
+      - name: Run TFLint from docker image (preview)
+        if: ${{ inputs.mode == 'image' }}
+        env:
+          ACTION_IMAGE: devopsinfra/action-tflint:${{ inputs.image_tag }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          docker pull "${ACTION_IMAGE}"
+          docker run --rm \
+            -e INPUT_DIR_FILTER=terraform/module_params \
+            -e INPUT_RUN_INIT=false \
+            -e INPUT_FAIL_ON_CHANGES=false \
+            -e INPUT_TFLINT_PARAMS=--minimum-failure-severity=error \
+            -v "$PWD:/github/workspace" \
+            -w /github/workspace \
+            "${ACTION_IMAGE}"

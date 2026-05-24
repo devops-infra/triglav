@@ -1,0 +1,9 @@
+{
+  "action-commit-push": [],
+  "action-container-structure-test": [],
+  "action-format-hcl": [],
+  "action-pull-request": [],
+  "action-terraform-copy-vars": [],
+  "action-terraform-validate": [],
+  "action-tflint": []
+}

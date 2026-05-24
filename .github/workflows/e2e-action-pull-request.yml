@@ -1,0 +1,306 @@
+name: (E2E) Action Pull Request
+
+on:
+  workflow_call:
+    inputs:
+      mode:
+        description: Execution mode (ref or image)
+        required: false
+        type: string
+        default: ref
+      image_tag:
+        description: Image tag for docker mode (for example v1.2.3-test or v1.2.3-rc)
+        required: false
+        type: string
+        default: ''
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Execution mode (ref or image)
+        required: false
+        default: ref
+        type: choice
+        options:
+          - ref
+          - image
+      image_tag:
+        description: Image tag for docker mode (for example v1.2.3-test or v1.2.3-rc)
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  preflight:
+    name: Validate workflow inputs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate mode input
+        run: |
+          case "${{ inputs.mode }}" in
+            ref|image) ;;
+            *)
+              echo "Unsupported mode '${{ inputs.mode }}'. Expected 'ref' or 'image'."
+              exit 1
+              ;;
+          esac
+
+  basic-pull-request:
+    name: Basic pull request creation
+    needs: [preflight]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Create test branch with a commit
+        if: ${{ inputs.mode == 'ref' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b test/e2e-pr-basic-${{ github.run_id }}
+          echo "E2E PR basic test $(date -u)" > e2e-pr-test.txt
+          git add e2e-pr-test.txt
+          git commit -m "[E2E] Basic PR test"
+          git push origin test/e2e-pr-basic-${{ github.run_id }}
+
+      - name: Create pull request
+        if: ${{ inputs.mode == 'ref' }}
+        id: pr
+        uses: devops-infra/action-pull-request@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          title: "[E2E] Basic pull request test - safe to close"
+          body: "Automated end-to-end test pull request. Will be closed automatically."
+          target_branch: master
+
+      - name: Create pull request via docker image (preview)
+        if: ${{ inputs.mode == 'image' }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          echo "Image mode placeholder for devopsinfra/action-pull-request:${{ inputs.image_tag }}"
+          echo "Use ref mode for authoritative validation until image-mode harness is finalized."
+
+      - name: Verify outputs
+        if: ${{ inputs.mode == 'ref' }}
+        run: |
+          echo "url=${{ steps.pr.outputs.url }}"
+          echo "pr_number=${{ steps.pr.outputs.pr_number }}"
+          test -n "${{ steps.pr.outputs.url }}"
+          test -n "${{ steps.pr.outputs.pr_number }}"
+
+      - name: Cleanup - close PR and delete test branch
+        if: ${{ always() && inputs.mode == 'ref' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ steps.pr.outputs.pr_number }}"
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr close "$PR_NUMBER" --repo "${{ github.repository }}" 2>/dev/null || true
+          fi
+          git push origin --delete test/e2e-pr-basic-${{ github.run_id }} 2>/dev/null || true
+
+  pull-request-with-title-body:
+    name: Pull request with custom title and body
+    needs: [preflight]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Create test branch with a commit
+        if: ${{ inputs.mode == 'ref' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b test/e2e-pr-custom-${{ github.run_id }}
+          echo "E2E PR custom title/body test $(date -u)" > e2e-pr-custom-test.txt
+          git add e2e-pr-custom-test.txt
+          git commit -m "[E2E] Custom title/body PR test"
+          git push origin test/e2e-pr-custom-${{ github.run_id }}
+
+      - name: Create pull request with custom title and body
+        if: ${{ inputs.mode == 'ref' }}
+        id: pr
+        uses: devops-infra/action-pull-request@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          title: "[E2E] Custom title test - safe to close"
+          body: |
+            Automated end-to-end test.
+            Testing custom title and body fields.
+            Safe to close automatically.
+          target_branch: master
+          allow_no_diff: "false"
+
+      - name: Create pull request via docker image (preview)
+        if: ${{ inputs.mode == 'image' }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          echo "Image mode placeholder for devopsinfra/action-pull-request:${{ inputs.image_tag }}"
+          echo "Use ref mode for authoritative validation until image-mode harness is finalized."
+
+      - name: Verify outputs
+        if: ${{ inputs.mode == 'ref' }}
+        run: |
+          echo "url=${{ steps.pr.outputs.url }}"
+          echo "pr_number=${{ steps.pr.outputs.pr_number }}"
+          test -n "${{ steps.pr.outputs.url }}"
+          test -n "${{ steps.pr.outputs.pr_number }}"
+
+      - name: Cleanup - close PR and delete test branch
+        if: ${{ always() && inputs.mode == 'ref' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ steps.pr.outputs.pr_number }}"
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr close "$PR_NUMBER" --repo "${{ github.repository }}" 2>/dev/null || true
+          fi
+          git push origin --delete test/e2e-pr-custom-${{ github.run_id }} 2>/dev/null || true
+
+  pull-request-with-repository-path:
+    name: Pull request using custom checkout path and explicit repository
+    needs: [preflight]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository into custom path
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          path: work/repo
+
+      - name: Create test branch with a commit inside custom path
+        if: ${{ inputs.mode == 'ref' }}
+        run: |
+          cd work/repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b test/e2e-pr-repo-path-${{ github.run_id }}
+          echo "E2E PR repository_path test $(date -u)" > e2e-pr-path-test.txt
+          git add e2e-pr-path-test.txt
+          git commit -m "[E2E] PR repository_path test"
+          git push origin test/e2e-pr-repo-path-${{ github.run_id }}
+
+      - name: Create pull request with repository and repository_path
+        if: ${{ inputs.mode == 'ref' }}
+        id: pr
+        uses: devops-infra/action-pull-request@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          repository_path: work/repo
+          title: "[E2E] Repository path PR test - safe to close"
+          body: "Automated end-to-end test for repository_path input."
+          target_branch: master
+
+      - name: Create pull request via docker image (preview)
+        if: ${{ inputs.mode == 'image' }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          echo "Image mode placeholder for devopsinfra/action-pull-request:${{ inputs.image_tag }}"
+          echo "Use ref mode for authoritative validation until image-mode harness is finalized."
+
+      - name: Verify outputs
+        if: ${{ inputs.mode == 'ref' }}
+        run: |
+          echo "url=${{ steps.pr.outputs.url }}"
+          echo "pr_number=${{ steps.pr.outputs.pr_number }}"
+          test -n "${{ steps.pr.outputs.url }}"
+          test -n "${{ steps.pr.outputs.pr_number }}"
+
+      - name: Cleanup - close PR and delete test branch
+        if: ${{ always() && inputs.mode == 'ref' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ steps.pr.outputs.pr_number }}"
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr close "$PR_NUMBER" --repo "${{ github.repository }}" 2>/dev/null || true
+          fi
+          cd work/repo
+          git push origin --delete test/e2e-pr-repo-path-${{ github.run_id }} 2>/dev/null || true
+
+  pull-request-draft-with-diff:
+    name: Draft pull request with get_diff enabled
+    needs: [preflight]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Create test branch with a commit
+        if: ${{ inputs.mode == 'ref' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b test/e2e-pr-draft-${{ github.run_id }}
+          echo "E2E draft PR test $(date -u)" > e2e-pr-draft-test.txt
+          git add e2e-pr-draft-test.txt
+          git commit -m "[E2E] Draft PR with diff test"
+          git push origin test/e2e-pr-draft-${{ github.run_id }}
+
+      - name: Create draft pull request with diff injection
+        if: ${{ inputs.mode == 'ref' }}
+        id: pr
+        uses: devops-infra/action-pull-request@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          title: "[E2E] Draft PR with diff - safe to close"
+          body: |
+            Automated end-to-end test.
+            <!-- Diff commits - START -->
+            <!-- Diff commits - END -->
+            <!-- Diff files - START -->
+            <!-- Diff files - END -->
+          target_branch: master
+          draft: "true"
+          get_diff: "true"
+
+      - name: Create draft pull request via docker image (preview)
+        if: ${{ inputs.mode == 'image' }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          echo "Image mode placeholder for devopsinfra/action-pull-request:${{ inputs.image_tag }}"
+          echo "Use ref mode for authoritative validation until image-mode harness is finalized."
+
+      - name: Verify outputs
+        if: ${{ inputs.mode == 'ref' }}
+        run: |
+          echo "url=${{ steps.pr.outputs.url }}"
+          echo "pr_number=${{ steps.pr.outputs.pr_number }}"
+          test -n "${{ steps.pr.outputs.url }}"
+          test -n "${{ steps.pr.outputs.pr_number }}"
+
+      - name: Cleanup - close PR and delete test branch
+        if: ${{ always() && inputs.mode == 'ref' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ steps.pr.outputs.pr_number }}"
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr close "$PR_NUMBER" --repo "${{ github.repository }}" 2>/dev/null || true
+          fi
+          git push origin --delete test/e2e-pr-draft-${{ github.run_id }} 2>/dev/null || true

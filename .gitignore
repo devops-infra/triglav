@@ -16,4 +16,12 @@ build/
 dist/
 *.egg-info/
 *.pyc
-__py
+__pycache__/
+
+# Local test artifacts
+*.tf
+*.tfvars
+terraform/
+infra/
+tests/e2e-hcl-*/
+e2e-*.txt

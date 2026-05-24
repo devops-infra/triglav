@@ -1,0 +1,303 @@
+name: (E2E) Action Container Structure Test
+
+on:
+  workflow_call:
+    inputs:
+      mode:
+        description: Execution mode (ref or image)
+        required: false
+        type: string
+        default: ref
+      image_tag:
+        description: Image tag for docker mode (for example v1.2.3-test or v1.2.3-rc)
+        required: false
+        type: string
+        default: ''
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Execution mode (ref or image)
+        required: false
+        default: ref
+        type: choice
+        options:
+          - ref
+          - image
+      image_tag:
+        description: Image tag for docker mode (for example v1.2.3-test or v1.2.3-rc)
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    name: Validate workflow inputs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate mode input
+        run: |
+          case "${{ inputs.mode }}" in
+            ref|image) ;;
+            *)
+              echo "Unsupported mode '${{ inputs.mode }}'. Expected 'ref' or 'image'."
+              exit 1
+              ;;
+          esac
+
+  text-output:
+    name: Basic test with text output format
+    needs: [preflight]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Pull Alpine test image
+        run: docker pull alpine:3.23.4
+
+      - name: Run container structure tests with text output
+        if: ${{ inputs.mode == 'ref' }}
+        id: cst
+        uses: devops-infra/action-container-structure-test@v1
+        with:
+          image: alpine:3.23.4
+          config: tests/fixtures/container-structure-test/alpine.yml
+          output: text
+
+      - name: Run container structure tests via docker image (preview)
+        if: ${{ inputs.mode == 'image' }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          echo "Image mode placeholder for devopsinfra/action-container-structure-test:${{ inputs.image_tag }}"
+          echo "Use ref mode for authoritative validation until image-mode harness is finalized."
+
+      - name: Verify test result outputs
+        if: ${{ inputs.mode == 'ref' }}
+        run: |
+          echo "total=${{ steps.cst.outputs.total }}"
+          echo "passed=${{ steps.cst.outputs.passed }}"
+          echo "failed=${{ steps.cst.outputs.failed }}"
+          echo "exit_code=${{ steps.cst.outputs.exit_code }}"
+          test "${{ steps.cst.outputs.exit_code }}" = "0"
+          test "${{ steps.cst.outputs.failed }}" = "0"
+
+  json-output:
+    name: Test with JSON output format
+    needs: [preflight]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Pull Alpine test image
+        run: docker pull alpine:3.23.4
+
+      - name: Run container structure tests with JSON output
+        if: ${{ inputs.mode == 'ref' }}
+        id: cst
+        uses: devops-infra/action-container-structure-test@v1
+        with:
+          image: alpine:3.23.4
+          config: tests/fixtures/container-structure-test/alpine.yml
+          output: json
+
+      - name: Run container structure tests via docker image (preview)
+        if: ${{ inputs.mode == 'image' }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          echo "Image mode placeholder for devopsinfra/action-container-structure-test:${{ inputs.image_tag }}"
+          echo "Use ref mode for authoritative validation until image-mode harness is finalized."
+
+      - name: Verify test result outputs
+        if: ${{ inputs.mode == 'ref' }}
+        run: |
+          echo "total=${{ steps.cst.outputs.total }}"
+          echo "passed=${{ steps.cst.outputs.passed }}"
+          echo "exit_code=${{ steps.cst.outputs.exit_code }}"
+          test "${{ steps.cst.outputs.exit_code }}" = "0"
+
+  junit-output:
+    name: Test with JUnit output format and suite name
+    needs: [preflight]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Pull Alpine test image
+        run: docker pull alpine:3.23.4
+
+      - name: Run container structure tests with JUnit output
+        if: ${{ inputs.mode == 'ref' }}
+        id: cst
+        uses: devops-infra/action-container-structure-test@v1
+        with:
+          image: alpine:3.23.4
+          config: tests/fixtures/container-structure-test/alpine.yml
+          output: junit
+          junit_suite_name: e2e-alpine-tests
+
+      - name: Run container structure tests via docker image (preview)
+        if: ${{ inputs.mode == 'image' }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          echo "Image mode placeholder for devopsinfra/action-container-structure-test:${{ inputs.image_tag }}"
+          echo "Use ref mode for authoritative validation until image-mode harness is finalized."
+
+      - name: Verify test result outputs
+        if: ${{ inputs.mode == 'ref' }}
+        run: |
+          echo "total=${{ steps.cst.outputs.total }}"
+          echo "passed=${{ steps.cst.outputs.passed }}"
+          echo "exit_code=${{ steps.cst.outputs.exit_code }}"
+          test "${{ steps.cst.outputs.exit_code }}" = "0"
+
+  test-report-file:
+    name: Test with report written to file
+    needs: [preflight]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Pull Alpine test image
+        run: docker pull alpine:3.23.4
+
+      - name: Run container structure tests saving report to file
+        if: ${{ inputs.mode == 'ref' }}
+        id: cst
+        uses: devops-infra/action-container-structure-test@v1
+        with:
+          image: alpine:3.23.4
+          config: tests/fixtures/container-structure-test/alpine.yml
+          output: json
+          test_report: /tmp/cst-report.json
+
+      - name: Run container structure tests via docker image (preview)
+        if: ${{ inputs.mode == 'image' }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          echo "Image mode placeholder for devopsinfra/action-container-structure-test:${{ inputs.image_tag }}"
+          echo "Use ref mode for authoritative validation until image-mode harness is finalized."
+
+      - name: Verify report file was created
+        if: ${{ inputs.mode == 'ref' }}
+        run: test -f /tmp/cst-report.json
+
+      - name: Verify test result outputs
+        if: ${{ inputs.mode == 'ref' }}
+        run: |
+          echo "total=${{ steps.cst.outputs.total }}"
+          echo "passed=${{ steps.cst.outputs.passed }}"
+          echo "exit_code=${{ steps.cst.outputs.exit_code }}"
+          test "${{ steps.cst.outputs.exit_code }}" = "0"
+
+  multiple-config-files:
+    name: Test with multiple config files
+    needs: [preflight]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Pull Alpine test image
+        run: docker pull alpine:3.23.4
+
+      - name: Run container structure tests with multiple config files
+        if: ${{ inputs.mode == 'ref' }}
+        id: cst
+        uses: devops-infra/action-container-structure-test@v1
+        with:
+          image: alpine:3.23.4
+          config: |
+            tests/fixtures/container-structure-test/alpine.yml
+            tests/fixtures/container-structure-test/alpine-extended.yml
+          output: text
+
+      - name: Run container structure tests via docker image (preview)
+        if: ${{ inputs.mode == 'image' }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          echo "Image mode placeholder for devopsinfra/action-container-structure-test:${{ inputs.image_tag }}"
+          echo "Use ref mode for authoritative validation until image-mode harness is finalized."
+
+      - name: Verify combined test results
+        if: ${{ inputs.mode == 'ref' }}
+        run: |
+          echo "total=${{ steps.cst.outputs.total }}"
+          echo "passed=${{ steps.cst.outputs.passed }}"
+          echo "failed=${{ steps.cst.outputs.failed }}"
+          echo "exit_code=${{ steps.cst.outputs.exit_code }}"
+          test "${{ steps.cst.outputs.exit_code }}" = "0"
+          test "${{ steps.cst.outputs.failed }}" = "0"
+
+  metadata-platform-runtime:
+    name: Test with metadata, platform, and runtime inputs
+    needs: [preflight]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Pull Alpine test image
+        run: docker pull alpine:3.23.4
+
+      - name: Create metadata file
+        run: |
+          cat > /tmp/cst-metadata.json << 'EOF'
+          {
+            "config": {
+              "Env": ["FOO=bar"]
+            }
+          }
+          EOF
+
+      - name: Run container structure tests with metadata/platform/runtime
+        if: ${{ inputs.mode == 'ref' }}
+        id: cst
+        uses: devops-infra/action-container-structure-test@v1
+        with:
+          image: alpine:3.23.4
+          config: tests/fixtures/container-structure-test/alpine.yml
+          driver: docker
+          platform: linux/amd64
+          runtime: runc
+          metadata: /tmp/cst-metadata.json
+          output: text
+
+      - name: Run container structure tests via docker image (preview)
+        if: ${{ inputs.mode == 'image' }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          echo "Image mode placeholder for devopsinfra/action-container-structure-test:${{ inputs.image_tag }}"
+          echo "Use ref mode for authoritative validation until image-mode harness is finalized."
+
+      - name: Verify test result outputs
+        if: ${{ inputs.mode == 'ref' }}
+        run: |
+          echo "total=${{ steps.cst.outputs.total }}"
+          echo "passed=${{ steps.cst.outputs.passed }}"
+          echo "failed=${{ steps.cst.outputs.failed }}"
+          echo "exit_code=${{ steps.cst.outputs.exit_code }}"
+          test "${{ steps.cst.outputs.exit_code }}" = "0"
