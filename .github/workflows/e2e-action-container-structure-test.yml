@@ -47,6 +47,14 @@ jobs:
               ;;
           esac
 
+      - name: Enforce organization caller for reusable workflow
+        if: ${{ github.event_name == 'workflow_call' }}
+        run: |
+          if [ "${{ github.repository_owner }}" != "devops-infra" ]; then
+            echo "This reusable workflow can only be called by devops-infra repositories."
+            exit 1
+          fi
+
   text-output:
     name: Basic test with text output format
     needs: [preflight]
