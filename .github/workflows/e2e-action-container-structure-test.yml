@@ -3,11 +3,6 @@ name: (E2E) Action Container Structure Test
 on:
   workflow_call:
     inputs:
-      action_ref:
-        description: Git ref of devops-infra/action-container-structure-test to validate
-        required: false
-        type: string
-        default: v1
       mode:
         description: Execution mode (ref or image)
         required: false

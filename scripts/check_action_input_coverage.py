@@ -53,7 +53,7 @@ def read_text_if_possible(path: Path) -> str:
         return ""
     try:
         return path.read_text(encoding="utf-8")
-    except OSError:
+    except (OSError, UnicodeDecodeError):
         return ""
 
 

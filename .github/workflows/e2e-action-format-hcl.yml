@@ -3,11 +3,6 @@ name: (E2E) Action Format HCL
 on:
   workflow_call:
     inputs:
-      action_ref:
-        description: Git ref of devops-infra/action-format-hcl to validate
-        required: false
-        type: string
-        default: v1
       mode:
         description: Execution mode (ref or image)
         required: false
@@ -28,6 +23,16 @@ jobs:
     name: Check mode on already-formatted files passes
     runs-on: ubuntu-latest
     steps:
+      - name: Validate mode input
+        run: |
+          case "${{ inputs.mode }}" in
+            ref|image) ;;
+            *)
+              echo "Unsupported mode '${{ inputs.mode }}'. Expected 'ref' or 'image'."
+              exit 1
+              ;;
+          esac
+
       - name: Checkout repository
         uses: actions/checkout@v6
 

@@ -48,6 +48,7 @@ Prerequisites:
 - `task`
 - `docker`
 - `gh` (authenticated)
+- `python3 -m pylint` available in your environment (local install is acceptable)
 
 Common commands:
 
@@ -114,15 +115,9 @@ Recommended pre-merge strategy:
 
 Execution modes:
 
-- `mode=ref` validates an action repository ref and requires `action_ref` (branch, tag, or SHA). This is authoritative for branch/SHA validation.
+- `mode=ref` runs ref-oriented E2E paths against stable pinned action refs.
 - `mode=image` validates a published Docker image and requires `image_tag`. This is authoritative in release image checks.
-- Use immutable values in automation: commit SHA or release tag for `action_ref`, and semantic tags (`vX.Y.Z-test`, `vX.Y.Z-rc`, `vX.Y.Z`) for `image_tag`.
-- Do not use `latest-test` for `action_ref`; `latest-test` is an image tag, not a Git ref.
-
-`action_ref` implementation note:
-
-- GitHub Actions does not allow expressions in local step `uses:` references, so `uses: org/repo@${{ ... }}` is invalid in these E2E workflow steps.
-- Dynamic `action_ref` selection is therefore enforced at the caller/orchestration level, while workflow steps use stable pinned refs.
+- Use semantic tags for `image_tag` in automation (`vX.Y.Z-test`, `vX.Y.Z-rc`, `vX.Y.Z`) instead of mutable aliases.
 
 Current mode behavior by workflow:
 
@@ -143,7 +138,6 @@ jobs:
     uses: devops-infra/triglav/.github/workflows/e2e-action-pull-request.yml@master
     with:
       mode: ref
-      action_ref: ${{ github.sha }}
 ```
 
 ```yaml

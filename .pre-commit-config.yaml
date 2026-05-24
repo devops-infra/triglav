@@ -43,4 +43,5 @@ repos:
         name: pylint
         entry: python3 -m pylint --rcfile .pylintrc
         language: system
+        # Keep language: system to align with this repository's Docker/system-based hooks.
         files: \.py$
