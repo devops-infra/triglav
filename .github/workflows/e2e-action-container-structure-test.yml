@@ -51,14 +51,14 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Pull Alpine test image
-        run: docker pull alpine:latest
+        run: docker pull alpine:3.23.4
 
       - name: Run container structure tests with text output
         if: ${{ inputs.mode == 'ref' }}
         id: cst
         uses: devops-infra/action-container-structure-test@v1
         with:
-          image: alpine:latest
+          image: alpine:3.23.4
           config: tests/fixtures/container-structure-test/alpine.yml
           output: text
 
@@ -90,14 +90,14 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Pull Alpine test image
-        run: docker pull alpine:latest
+        run: docker pull alpine:3.23.4
 
       - name: Run container structure tests with JSON output
         if: ${{ inputs.mode == 'ref' }}
         id: cst
         uses: devops-infra/action-container-structure-test@v1
         with:
-          image: alpine:latest
+          image: alpine:3.23.4
           config: tests/fixtures/container-structure-test/alpine.yml
           output: json
 
@@ -127,14 +127,14 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Pull Alpine test image
-        run: docker pull alpine:latest
+        run: docker pull alpine:3.23.4
 
       - name: Run container structure tests with JUnit output
         if: ${{ inputs.mode == 'ref' }}
         id: cst
         uses: devops-infra/action-container-structure-test@v1
         with:
-          image: alpine:latest
+          image: alpine:3.23.4
           config: tests/fixtures/container-structure-test/alpine.yml
           output: junit
           junit_suite_name: e2e-alpine-tests
@@ -165,14 +165,14 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Pull Alpine test image
-        run: docker pull alpine:latest
+        run: docker pull alpine:3.23.4
 
       - name: Run container structure tests saving report to file
         if: ${{ inputs.mode == 'ref' }}
         id: cst
         uses: devops-infra/action-container-structure-test@v1
         with:
-          image: alpine:latest
+          image: alpine:3.23.4
           config: tests/fixtures/container-structure-test/alpine.yml
           output: json
           test_report: /tmp/cst-report.json
@@ -207,14 +207,14 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Pull Alpine test image
-        run: docker pull alpine:latest
+        run: docker pull alpine:3.23.4
 
       - name: Run container structure tests with multiple config files
         if: ${{ inputs.mode == 'ref' }}
         id: cst
         uses: devops-infra/action-container-structure-test@v1
         with:
-          image: alpine:latest
+          image: alpine:3.23.4
           config: |
             tests/fixtures/container-structure-test/alpine.yml
             tests/fixtures/container-structure-test/alpine-extended.yml
@@ -248,7 +248,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Pull Alpine test image
-        run: docker pull alpine:latest
+        run: docker pull alpine:3.23.4
 
       - name: Create metadata file
         run: |
@@ -265,7 +265,7 @@ jobs:
         id: cst
         uses: devops-infra/action-container-structure-test@v1
         with:
-          image: alpine:latest
+          image: alpine:3.23.4
           config: tests/fixtures/container-structure-test/alpine.yml
           driver: docker
           platform: linux/amd64
