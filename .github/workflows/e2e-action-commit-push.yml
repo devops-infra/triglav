@@ -319,6 +319,7 @@ jobs:
           target_branch: test/e2e-commit-push-reset-${{ github.run_id }}
           base_branch: test/e2e-commit-push-base-${{ github.run_id }}
           reset_target_branch: "true"
+          force_with_lease: "true"
 
       - name: Reset via docker image (preview)
         if: ${{ inputs.mode == 'image' }}
