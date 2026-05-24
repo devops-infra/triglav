@@ -33,7 +33,7 @@ vars:
       if [ -n "${GH_REPO:-}" ]; then
         echo "${GH_REPO}"
       else
-        gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null || echo "devops-infra/end-to-end-tests"
+        gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null || echo "devops-infra/triglav"
       fi
   VERSION_OVERRIDE:
     sh: echo "${VERSION_OVERRIDE:-}"

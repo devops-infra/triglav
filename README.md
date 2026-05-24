@@ -1,6 +1,18 @@
-# End-to-End Tests Framework
+# Triglav
+
+## End-to-End Tests Framework
 
 Repository-level framework used to validate `devops-infra` automation end-to-end, with a focus on GitHub Actions behavior in real workflow runs.
+
+![Triglav](triglav.jpeg)
+
+## Why Triglav
+
+In Slavic mythology, Triglav represents three realms. That maps well to this framework's validation layers:
+
+- pull request lifecycle and branch management behavior
+- integration tests against live GitHub runtime
+- periodic regression testing to catch unexpected changes
 
 ## Scope
 
@@ -19,7 +31,7 @@ Repository-level framework used to validate `devops-infra` automation end-to-end
 | `devops-infra/action-terraform-copy-vars`      | `.github/workflows/e2e-action-terraform-copy-vars.yml`      | variable propagation across modules, custom path inputs, strict missing-variable failure mode                                   |
 | `devops-infra/action-terraform-validate`       | `.github/workflows/e2e-action-terraform-validate.yml`       | valid module validation, scoped validation via `dir_filter`                                                                     |
 | `devops-infra/action-tflint`                   | `.github/workflows/e2e-action-tflint.yml`                   | lint execution across modules, scoped lint via `dir_filter`, non-blocking findings mode                                         |
-| `devops-infra/template-action`                 | `.github/workflows/e2e-action-template-action.yml`          | baseline template behavior validation, output contract checks, debug-mode execution                                              |
+| `devops-infra/template-action`                 | `.github/workflows/e2e-action-template-action.yml`          | baseline template behavior validation, output contract checks, debug-mode execution                                             |
 
 ## Workflow Orchestration
 
@@ -114,7 +126,7 @@ Example caller from another action repository:
 ```yaml
 jobs:
   e2e-pr-validation:
-    uses: devops-infra/end-to-end-tests/.github/workflows/e2e-action-pull-request.yml@master
+    uses: devops-infra/triglav/.github/workflows/e2e-action-pull-request.yml@master
     with:
       mode: image
       image_tag: v1.2.3-test

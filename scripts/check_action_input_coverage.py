@@ -109,7 +109,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--repo-root",
         required=True,
-        help="Path to end-to-end-tests repository",
+        help="Path to triglav repository",
     )
     parser.add_argument(
         "--baseline-file",
