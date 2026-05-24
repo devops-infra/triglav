@@ -56,6 +56,7 @@ jobs:
           echo "Use ref mode for authoritative validation until image-mode harness is finalized."
 
       - name: Verify outputs
+        if: ${{ inputs.mode == 'ref' }}
         run: |
           echo "branch_name=${{ steps.commit.outputs.branch_name }}"
           echo "files_changed=${{ steps.commit.outputs.files_changed }}"
@@ -99,6 +100,7 @@ jobs:
           echo "Use ref mode for authoritative validation until image-mode harness is finalized."
 
       - name: Verify outputs
+        if: ${{ inputs.mode == 'ref' }}
         run: |
           echo "branch_name=${{ steps.commit.outputs.branch_name }}"
           echo "files_changed=${{ steps.commit.outputs.files_changed }}"
@@ -139,6 +141,7 @@ jobs:
           echo "Use ref mode for authoritative validation until image-mode harness is finalized."
 
       - name: Verify branch output
+        if: ${{ inputs.mode == 'ref' }}
         run: |
           echo "branch_name=${{ steps.commit.outputs.branch_name }}"
           test -n "${{ steps.commit.outputs.branch_name }}"
@@ -187,7 +190,7 @@ jobs:
           [[ "${branch_name}" =~ ^test/e2e-commit-push-timestamp-[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}Z$ ]]
 
       - name: Cleanup - delete test branch
-        if: always()
+        if: ${{ always() && inputs.mode == 'ref' }}
         run: |
           branch_name="${{ steps.commit.outputs.branch_name }}"
           if [ -n "${branch_name}" ]; then
@@ -415,6 +418,7 @@ jobs:
           echo "Use ref mode for authoritative validation until image-mode harness is finalized."
 
       - name: Verify branch output
+        if: ${{ inputs.mode == 'ref' }}
         run: |
           echo "branch_name=${{ steps.amend.outputs.branch_name }}"
           test -n "${{ steps.amend.outputs.branch_name }}"

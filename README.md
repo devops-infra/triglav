@@ -112,21 +112,44 @@ Recommended pre-merge strategy:
 - Run E2E with action refs that point to the PR under test (branch or SHA).
 - Run image-tag verification stages for `-test` and `-rc` tags after image publication in release pipelines.
 
-Current image-mode implementation:
+Execution modes:
 
-- `e2e-action-format-hcl.yml` supports executable `mode: image` using `image_tag`.
-- `e2e-action-tflint.yml` supports executable `mode: image` using `image_tag`.
-- `e2e-action-terraform-validate.yml` supports executable `mode: image` using `image_tag`.
-- `e2e-action-terraform-copy-vars.yml` supports executable `mode: image` using `image_tag`.
-- `e2e-action-container-structure-test.yml` currently uses `mode: ref` as authoritative path in reusable CI flows.
-- `e2e-action-commit-push.yml` and `e2e-action-pull-request.yml` use `mode: ref` as authoritative path in reusable CI flows.
+- `mode=ref` validates an action repository ref and requires `action_ref` (branch, tag, or SHA). This is authoritative for branch/SHA validation.
+- `mode=image` validates a published Docker image and requires `image_tag`. This is authoritative in release image checks.
+- Use immutable values in automation: commit SHA or release tag for `action_ref`, and semantic tags (`vX.Y.Z-test`, `vX.Y.Z-rc`, `vX.Y.Z`) for `image_tag`.
+- Do not use `latest-test` for `action_ref`; `latest-test` is an image tag, not a Git ref.
 
-Example caller from another action repository:
+`action_ref` implementation note:
+
+- GitHub Actions does not allow expressions in local step `uses:` references, so `uses: org/repo@${{ ... }}` is invalid in these E2E workflow steps.
+- Dynamic `action_ref` selection is therefore enforced at the caller/orchestration level, while workflow steps use stable pinned refs.
+
+Current mode behavior by workflow:
+
+- `e2e-action-commit-push.yml`: `ref` authoritative, `image` placeholder preview.
+- `e2e-action-pull-request.yml`: `ref` authoritative, `image` placeholder preview.
+- `e2e-action-template-action.yml`: `ref` authoritative, `image` placeholder preview.
+- `e2e-action-container-structure-test.yml`: `ref` authoritative in reusable CI flows, `image` preview.
+- `e2e-action-format-hcl.yml`: `ref` and executable `image` supported.
+- `e2e-action-tflint.yml`: `ref` and executable `image` supported.
+- `e2e-action-terraform-validate.yml`: `ref` and executable `image` supported.
+- `e2e-action-terraform-copy-vars.yml`: `ref` and executable `image` supported.
+
+Example callers from another action repository:
 
 ```yaml
 jobs:
   e2e-pr-validation:
     uses: devops-infra/triglav/.github/workflows/e2e-action-pull-request.yml@master
+    with:
+      mode: ref
+      action_ref: ${{ github.sha }}
+```
+
+```yaml
+jobs:
+  e2e-image-validation:
+    uses: devops-infra/triglav/.github/workflows/e2e-action-format-hcl.yml@master
     with:
       mode: image
       image_tag: v1.2.3-test

@@ -190,8 +190,9 @@ tasks:
     cmds:
       - |
         set -eu
+        workspace_root="${WORKSPACE_ROOT:-$(dirname "$PWD")}"
         python3 scripts/check_action_input_coverage.py \
-          --workspace-root /Users/christoph/IdeaProjects/devops-infra \
+          --workspace-root "$workspace_root" \
           --repo-root "$PWD" \
           --baseline-file "$PWD/tests/coverage-baseline.json"
 
@@ -201,8 +202,9 @@ tasks:
     cmds:
       - |
         set -eu
+        workspace_root="${WORKSPACE_ROOT:-$(dirname "$PWD")}"
         python3 scripts/check_action_input_coverage.py \
-          --workspace-root /Users/christoph/IdeaProjects/devops-infra \
+          --workspace-root "$workspace_root" \
           --repo-root "$PWD" \
           --baseline-file "$PWD/tests/coverage-baseline.json" \
           --strict

@@ -66,6 +66,7 @@ jobs:
           echo "Use ref mode for authoritative validation until image-mode harness is finalized."
 
       - name: Verify outputs
+        if: ${{ inputs.mode == 'ref' }}
         run: |
           echo "url=${{ steps.pr.outputs.url }}"
           echo "pr_number=${{ steps.pr.outputs.pr_number }}"
@@ -73,7 +74,7 @@ jobs:
           test -n "${{ steps.pr.outputs.pr_number }}"
 
       - name: Cleanup - close PR and delete test branch
-        if: always()
+        if: ${{ always() && inputs.mode == 'ref' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -127,6 +128,7 @@ jobs:
           echo "Use ref mode for authoritative validation until image-mode harness is finalized."
 
       - name: Verify outputs
+        if: ${{ inputs.mode == 'ref' }}
         run: |
           echo "url=${{ steps.pr.outputs.url }}"
           echo "pr_number=${{ steps.pr.outputs.pr_number }}"
@@ -134,7 +136,7 @@ jobs:
           test -n "${{ steps.pr.outputs.pr_number }}"
 
       - name: Cleanup - close PR and delete test branch
-        if: always()
+        if: ${{ always() && inputs.mode == 'ref' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -188,6 +190,7 @@ jobs:
           echo "Use ref mode for authoritative validation until image-mode harness is finalized."
 
       - name: Verify outputs
+        if: ${{ inputs.mode == 'ref' }}
         run: |
           echo "url=${{ steps.pr.outputs.url }}"
           echo "pr_number=${{ steps.pr.outputs.pr_number }}"
@@ -195,7 +198,7 @@ jobs:
           test -n "${{ steps.pr.outputs.pr_number }}"
 
       - name: Cleanup - close PR and delete test branch
-        if: always()
+        if: ${{ always() && inputs.mode == 'ref' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -253,6 +256,7 @@ jobs:
           echo "Use ref mode for authoritative validation until image-mode harness is finalized."
 
       - name: Verify outputs
+        if: ${{ inputs.mode == 'ref' }}
         run: |
           echo "url=${{ steps.pr.outputs.url }}"
           echo "pr_number=${{ steps.pr.outputs.pr_number }}"
@@ -260,7 +264,7 @@ jobs:
           test -n "${{ steps.pr.outputs.pr_number }}"
 
       - name: Cleanup - close PR and delete test branch
-        if: always()
+        if: ${{ always() && inputs.mode == 'ref' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

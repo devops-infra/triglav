@@ -85,3 +85,11 @@ jobs:
       action_ref: ${{ github.event_name == 'workflow_dispatch' && inputs.action_ref || 'v1' }}
       image_tag: ${{ github.event_name == 'workflow_dispatch' && inputs.image_tag || '' }}
     secrets: inherit
+
+  action-template-action:
+    uses: ./.github/workflows/e2e-action-template-action.yml
+    with:
+      mode: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'ref' }}
+      action_ref: ${{ github.event_name == 'workflow_dispatch' && inputs.action_ref || 'v1' }}
+      image_tag: ${{ github.event_name == 'workflow_dispatch' && inputs.image_tag || '' }}
+    secrets: inherit

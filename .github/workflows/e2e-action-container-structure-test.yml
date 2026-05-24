@@ -54,6 +54,7 @@ jobs:
           echo "Use ref mode for authoritative validation until image-mode harness is finalized."
 
       - name: Verify test result outputs
+        if: ${{ inputs.mode == 'ref' }}
         run: |
           echo "total=${{ steps.cst.outputs.total }}"
           echo "passed=${{ steps.cst.outputs.passed }}"
@@ -92,6 +93,7 @@ jobs:
           echo "Use ref mode for authoritative validation until image-mode harness is finalized."
 
       - name: Verify test result outputs
+        if: ${{ inputs.mode == 'ref' }}
         run: |
           echo "total=${{ steps.cst.outputs.total }}"
           echo "passed=${{ steps.cst.outputs.passed }}"
@@ -129,6 +131,7 @@ jobs:
           echo "Use ref mode for authoritative validation until image-mode harness is finalized."
 
       - name: Verify test result outputs
+        if: ${{ inputs.mode == 'ref' }}
         run: |
           echo "total=${{ steps.cst.outputs.total }}"
           echo "passed=${{ steps.cst.outputs.passed }}"
@@ -166,9 +169,11 @@ jobs:
           echo "Use ref mode for authoritative validation until image-mode harness is finalized."
 
       - name: Verify report file was created
+        if: ${{ inputs.mode == 'ref' }}
         run: test -f /tmp/cst-report.json
 
       - name: Verify test result outputs
+        if: ${{ inputs.mode == 'ref' }}
         run: |
           echo "total=${{ steps.cst.outputs.total }}"
           echo "passed=${{ steps.cst.outputs.passed }}"
@@ -207,6 +212,7 @@ jobs:
           echo "Use ref mode for authoritative validation until image-mode harness is finalized."
 
       - name: Verify combined test results
+        if: ${{ inputs.mode == 'ref' }}
         run: |
           echo "total=${{ steps.cst.outputs.total }}"
           echo "passed=${{ steps.cst.outputs.passed }}"
@@ -259,6 +265,7 @@ jobs:
           echo "Use ref mode for authoritative validation until image-mode harness is finalized."
 
       - name: Verify test result outputs
+        if: ${{ inputs.mode == 'ref' }}
         run: |
           echo "total=${{ steps.cst.outputs.total }}"
           echo "passed=${{ steps.cst.outputs.passed }}"
