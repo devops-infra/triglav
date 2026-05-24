@@ -101,6 +101,10 @@ tasks:
           echo "ℹ️ No Python files found, skipping pylint"
           exit 0
         fi
+        if ! python3 -m pylint --version >/dev/null 2>&1; then
+          echo "ℹ️ pylint not found, installing locally..."
+          python3 -m pip install --user --quiet pylint==3.3.4
+        fi
         python3 -m pylint --rcfile .pylintrc ${files}
         echo "✅ pylint passed"
 
