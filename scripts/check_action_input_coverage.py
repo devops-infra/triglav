@@ -195,6 +195,10 @@ def print_report(results: dict[str, list[str]]) -> None:
 
 def strict_gate(results: dict[str, list[str]], baseline_file: Path) -> int:
     """Apply strict gate against baseline and return process code."""
+    if not results:
+        print("[ERROR] no action-* repositories discovered under --workspace-root")
+        return 1
+
     baseline = load_baseline(baseline_file)
     has_new_gap = False
 

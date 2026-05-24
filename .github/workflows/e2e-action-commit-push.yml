@@ -262,6 +262,7 @@ jobs:
           fetch-depth: 0
 
       - name: Prepare base and target branches
+        if: ${{ inputs.mode == 'ref' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -328,6 +329,7 @@ jobs:
           fetch-depth: 0
 
       - name: Prepare conflicting branches
+        if: ${{ inputs.mode == 'ref' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -394,6 +396,7 @@ jobs:
           fetch-depth: 0
 
       - name: Create initial branch with commit
+        if: ${{ inputs.mode == 'ref' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -404,6 +407,7 @@ jobs:
           git push origin test/e2e-commit-push-amend-${{ github.run_id }}
 
       - name: Add more content to file
+        if: ${{ inputs.mode == 'ref' }}
         run: echo "v2" >> e2e-amend-test.txt
 
       - name: Amend commit keeping original message

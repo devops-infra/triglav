@@ -63,6 +63,14 @@ outputs:
         corpus = "run: echo $INPUT_DRY_RUN_MODE"
         self.assertTrue(self.module.input_is_covered("dry-run-mode", corpus))
 
+    def test_strict_gate_fails_when_no_action_repos(self):
+        """Strict gate fails when discovery yields no action repositories."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            baseline_file = Path(tmp_dir) / "baseline.json"
+            baseline_file.write_text("{}\n", encoding="utf-8")
+            exit_code = self.module.strict_gate({}, baseline_file)
+        self.assertEqual(exit_code, 1)
+
 
 if __name__ == "__main__":
     unittest.main()
