@@ -71,6 +71,14 @@ outputs:
             exit_code = self.module.strict_gate({}, baseline_file)
         self.assertEqual(exit_code, 1)
 
+    def test_load_baseline_handles_invalid_json(self):
+        """Invalid baseline JSON returns empty baseline without crashing."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            baseline_file = Path(tmp_dir) / "baseline.json"
+            baseline_file.write_text("{invalid-json", encoding="utf-8")
+            baseline = self.module.load_baseline(baseline_file)
+        self.assertEqual(baseline, {})
+
 
 if __name__ == "__main__":
     unittest.main()

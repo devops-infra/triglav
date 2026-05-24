@@ -106,7 +106,11 @@ def load_baseline(path: Path) -> dict[str, list[str]]:
     if not path.exists():
         return {}
 
-    raw = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        print(f"[ERROR] invalid JSON in baseline file: {path}")
+        return {}
     if not isinstance(raw, dict):
         return {}
 
