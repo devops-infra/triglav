@@ -4,7 +4,7 @@
 
 Repository-level framework used to validate `devops-infra` automation end-to-end, with a focus on GitHub Actions behavior in real workflow runs.
 
-![Triglav](triglav.jpeg)
+![Triglav](img/triglav.png)
 
 ## Why Triglav
 
