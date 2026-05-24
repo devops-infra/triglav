@@ -90,6 +90,119 @@ tasks:
           exit $rc
         fi
 
+  lint:pylint:
+    desc: Lint Python files with pylint
+    cmds:
+      - |
+        set -eu
+        echo "▶️ Running pylint..."
+        files="$(git ls-files '*.py' || true)"
+        if [ -z "${files}" ]; then
+          echo "ℹ️ No Python files found, skipping pylint"
+          exit 0
+        fi
+        python3 -m pylint --rcfile .pylintrc ${files}
+        echo "✅ pylint passed"
+
+  e2e:list-workflows:
+    desc: List E2E workflow files
+    shell: bash
+    cmds:
+      - |
+        set -eu
+        shopt -s nullglob
+        files=(.github/workflows/e2e-*.yml)
+        if [ "${#files[@]}" -eq 0 ]; then
+          echo "No E2E workflows found"
+          exit 0
+        fi
+        printf '%s\n' "${files[@]}" | sort
+
+  e2e:run:
+    desc: Run selected E2E workflow via gh
+    shell: bash
+    cmds:
+      - |
+        set -eu
+        workflow="${WORKFLOW:-}"
+        workflow_ref="${WORKFLOW_REF:-{{.GIT_BRANCH}}}"
+        if [ -z "$workflow" ]; then
+          echo "ERROR: set WORKFLOW, e.g. WORKFLOW=e2e-action-pull-request.yml"
+          exit 1
+        fi
+        gh workflow run "$workflow" --repo "{{.GH_REPO}}" --ref "$workflow_ref"
+        echo "Triggered workflow '$workflow' in {{.GH_REPO}} on ref '$workflow_ref'"
+
+  e2e:run:all:
+    desc: Trigger all E2E action workflows sequentially
+    shell: bash
+    cmds:
+      - |
+        set -eu
+        workflow_ref="${WORKFLOW_REF:-{{.GIT_BRANCH}}}"
+        shopt -s nullglob
+        files=(.github/workflows/e2e-action-*.yml)
+        if [ "${#files[@]}" -eq 0 ]; then
+          echo "No E2E action workflows found"
+          exit 0
+        fi
+        mapfile -t workflows < <(printf '%s\n' "${files[@]}" | xargs -n1 basename | sort)
+        for workflow in "${workflows[@]}"; do
+          echo "Triggering ${workflow} in {{.GH_REPO}} on ref ${workflow_ref}"
+          gh workflow run "$workflow" --repo "{{.GH_REPO}}" --ref "$workflow_ref"
+          sleep 1
+        done
+        echo "Triggered ${#workflows[@]} workflow(s) on ref '${workflow_ref}'."
+
+  e2e:view-latest:
+    desc: Show latest run for selected E2E workflow
+    shell: bash
+    cmds:
+      - |
+        set -eu
+        workflow="${WORKFLOW:-}"
+        if [ -z "$workflow" ]; then
+          echo "ERROR: set WORKFLOW, e.g. WORKFLOW=e2e-action-pull-request.yml"
+          exit 1
+        fi
+        gh run list --repo "{{.GH_REPO}}" --workflow "$workflow" --limit 1
+
+  e2e:watch:
+    desc: Watch a workflow run by RUN_ID
+    shell: bash
+    cmds:
+      - |
+        set -eu
+        run_id="${RUN_ID:-}"
+        if [ -z "$run_id" ]; then
+          echo "ERROR: set RUN_ID"
+          exit 1
+        fi
+        gh run watch "$run_id" --repo "{{.GH_REPO}}"
+
+  test:coverage:report:
+    desc: Report action input coverage from local tests and E2E workflows
+    shell: bash
+    cmds:
+      - |
+        set -eu
+        python3 scripts/check_action_input_coverage.py \
+          --workspace-root /Users/christoph/IdeaProjects/devops-infra \
+          --repo-root "$PWD" \
+          --baseline-file "$PWD/tests/coverage-baseline.json"
+
+  test:coverage:gate:
+    desc: Fail on new uncovered action inputs not in baseline
+    shell: bash
+    cmds:
+      - |
+        set -eu
+        python3 scripts/check_action_input_coverage.py \
+          --workspace-root /Users/christoph/IdeaProjects/devops-infra \
+          --repo-root "$PWD" \
+          --baseline-file "$PWD/tests/coverage-baseline.json" \
+          --strict
+
   dependency:update:
     desc: 'No-op: no dedicated dependency updater configured for this profile'
     cmds:

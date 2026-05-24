@@ -2,6 +2,22 @@ name: (E2E) Action Pull Request
 
 on:
   workflow_call:
+    inputs:
+      action_ref:
+        description: Git ref of devops-infra/action-pull-request to validate
+        required: false
+        type: string
+        default: v1
+      mode:
+        description: Execution mode (ref or image)
+        required: false
+        type: string
+        default: ref
+      image_tag:
+        description: Image tag for docker mode (for example v1.2.3-test or v1.2.3-rc)
+        required: false
+        type: string
+        default: ''
   workflow_dispatch:
 
 permissions:
@@ -15,7 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -30,6 +46,7 @@ jobs:
           git push origin test/e2e-pr-basic-${{ github.run_id }}
 
       - name: Create pull request
+        if: ${{ inputs.mode == 'ref' }}
         id: pr
         uses: devops-infra/action-pull-request@v1
         with:
@@ -37,6 +54,16 @@ jobs:
           title: "[E2E] Basic pull request test - safe to close"
           body: "Automated end-to-end test pull request. Will be closed automatically."
           target_branch: master
+
+      - name: Create pull request via docker image (preview)
+        if: ${{ inputs.mode == 'image' }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          echo "Image mode placeholder for devopsinfra/action-pull-request:${{ inputs.image_tag }}"
+          echo "Use ref mode for authoritative validation until image-mode harness is finalized."
 
       - name: Verify outputs
         run: |
@@ -61,7 +88,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -76,6 +103,7 @@ jobs:
           git push origin test/e2e-pr-custom-${{ github.run_id }}
 
       - name: Create pull request with custom title and body
+        if: ${{ inputs.mode == 'ref' }}
         id: pr
         uses: devops-infra/action-pull-request@v1
         with:
@@ -87,6 +115,16 @@ jobs:
             Safe to close automatically.
           target_branch: master
           allow_no_diff: "false"
+
+      - name: Create pull request via docker image (preview)
+        if: ${{ inputs.mode == 'image' }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          echo "Image mode placeholder for devopsinfra/action-pull-request:${{ inputs.image_tag }}"
+          echo "Use ref mode for authoritative validation until image-mode harness is finalized."
 
       - name: Verify outputs
         run: |
@@ -111,7 +149,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository into custom path
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           path: work/repo
@@ -128,6 +166,7 @@ jobs:
           git push origin test/e2e-pr-repo-path-${{ github.run_id }}
 
       - name: Create pull request with repository and repository_path
+        if: ${{ inputs.mode == 'ref' }}
         id: pr
         uses: devops-infra/action-pull-request@v1
         with:
@@ -137,6 +176,16 @@ jobs:
           title: "[E2E] Repository path PR test - safe to close"
           body: "Automated end-to-end test for repository_path input."
           target_branch: master
+
+      - name: Create pull request via docker image (preview)
+        if: ${{ inputs.mode == 'image' }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          echo "Image mode placeholder for devopsinfra/action-pull-request:${{ inputs.image_tag }}"
+          echo "Use ref mode for authoritative validation until image-mode harness is finalized."
 
       - name: Verify outputs
         run: |
@@ -162,7 +211,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -177,6 +226,7 @@ jobs:
           git push origin test/e2e-pr-draft-${{ github.run_id }}
 
       - name: Create draft pull request with diff injection
+        if: ${{ inputs.mode == 'ref' }}
         id: pr
         uses: devops-infra/action-pull-request@v1
         with:
@@ -191,6 +241,16 @@ jobs:
           target_branch: master
           draft: "true"
           get_diff: "true"
+
+      - name: Create draft pull request via docker image (preview)
+        if: ${{ inputs.mode == 'image' }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          echo "Image mode placeholder for devopsinfra/action-pull-request:${{ inputs.image_tag }}"
+          echo "Use ref mode for authoritative validation until image-mode harness is finalized."
 
       - name: Verify outputs
         run: |

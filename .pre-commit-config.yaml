@@ -39,3 +39,8 @@ repos:
         entry: bash -lc 'docker run --rm -v "$PWD:/work" -w /work cytopia/yamllint -c .yamllint.yml "$@"' --
         language: system
         files: \.(yml|yaml)$
+      - id: pylint
+        name: pylint
+        entry: python3 -m pylint --rcfile .pylintrc
+        language: system
+        files: \.py$

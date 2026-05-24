@@ -4,6 +4,25 @@ on:
   schedule:
     - cron: 0 6 * * 1
   workflow_dispatch:
+    inputs:
+      mode:
+        description: Run mode (ref or image)
+        required: false
+        default: ref
+        type: choice
+        options:
+          - ref
+          - image
+      action_ref:
+        description: Action git ref used when mode=ref
+        required: false
+        default: v1
+        type: string
+      image_tag:
+        description: Action image tag used when mode=image (for example v1.2.3-test or v1.2.3-rc)
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: write
@@ -13,28 +32,56 @@ permissions:
 jobs:
   action-commit-push:
     uses: ./.github/workflows/e2e-action-commit-push.yml
+    with:
+      mode: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'ref' }}
+      action_ref: ${{ github.event_name == 'workflow_dispatch' && inputs.action_ref || 'v1' }}
+      image_tag: ${{ github.event_name == 'workflow_dispatch' && inputs.image_tag || '' }}
     secrets: inherit
 
   action-pull-request:
     uses: ./.github/workflows/e2e-action-pull-request.yml
+    with:
+      mode: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'ref' }}
+      action_ref: ${{ github.event_name == 'workflow_dispatch' && inputs.action_ref || 'v1' }}
+      image_tag: ${{ github.event_name == 'workflow_dispatch' && inputs.image_tag || '' }}
     secrets: inherit
 
   action-tflint:
     uses: ./.github/workflows/e2e-action-tflint.yml
+    with:
+      mode: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'ref' }}
+      action_ref: ${{ github.event_name == 'workflow_dispatch' && inputs.action_ref || 'v1' }}
+      image_tag: ${{ github.event_name == 'workflow_dispatch' && inputs.image_tag || '' }}
     secrets: inherit
 
   action-format-hcl:
     uses: ./.github/workflows/e2e-action-format-hcl.yml
+    with:
+      mode: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'ref' }}
+      action_ref: ${{ github.event_name == 'workflow_dispatch' && inputs.action_ref || 'v1' }}
+      image_tag: ${{ github.event_name == 'workflow_dispatch' && inputs.image_tag || '' }}
     secrets: inherit
 
   action-terraform-validate:
     uses: ./.github/workflows/e2e-action-terraform-validate.yml
+    with:
+      mode: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'ref' }}
+      action_ref: ${{ github.event_name == 'workflow_dispatch' && inputs.action_ref || 'v1' }}
+      image_tag: ${{ github.event_name == 'workflow_dispatch' && inputs.image_tag || '' }}
     secrets: inherit
 
   action-terraform-copy-vars:
     uses: ./.github/workflows/e2e-action-terraform-copy-vars.yml
+    with:
+      mode: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'ref' }}
+      action_ref: ${{ github.event_name == 'workflow_dispatch' && inputs.action_ref || 'v1' }}
+      image_tag: ${{ github.event_name == 'workflow_dispatch' && inputs.image_tag || '' }}
     secrets: inherit
 
   action-container-structure-test:
     uses: ./.github/workflows/e2e-action-container-structure-test.yml
+    with:
+      mode: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'ref' }}
+      action_ref: ${{ github.event_name == 'workflow_dispatch' && inputs.action_ref || 'v1' }}
+      image_tag: ${{ github.event_name == 'workflow_dispatch' && inputs.image_tag || '' }}
     secrets: inherit

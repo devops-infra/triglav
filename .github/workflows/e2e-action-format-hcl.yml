@@ -2,6 +2,22 @@ name: (E2E) Action Format HCL
 
 on:
   workflow_call:
+    inputs:
+      action_ref:
+        description: Git ref of devops-infra/action-format-hcl to validate
+        required: false
+        type: string
+        default: v1
+      mode:
+        description: Execution mode (ref or image)
+        required: false
+        type: string
+        default: ref
+      image_tag:
+        description: Image tag for docker mode (for example v1.2.3-test or v1.2.3-rc)
+        required: false
+        type: string
+        default: ''
   workflow_dispatch:
 
 permissions:
@@ -13,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Create well-formatted Terraform files
         run: |
@@ -40,17 +56,35 @@ jobs:
           EOF
 
       - name: Check already-formatted files
+        if: ${{ inputs.mode == 'ref' }}
         uses: devops-infra/action-format-hcl@v1
         with:
           check: "true"
           dir: tests/e2e-hcl-clean
+
+      - name: Check via docker image (preview)
+        if: ${{ inputs.mode == 'image' }}
+        env:
+          ACTION_IMAGE: devopsinfra/action-format-hcl:${{ inputs.image_tag }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          docker pull "${ACTION_IMAGE}"
+          docker run --rm \
+            -e INPUT_CHECK=true \
+            -e INPUT_DIR=tests/e2e-hcl-clean \
+            -v "$PWD:/github/workspace" \
+            -w /github/workspace \
+            "${ACTION_IMAGE}"
 
   format-write-mode:
     name: Write mode formats and rewrites files
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Create Terraform files for write-mode formatting
         run: |
@@ -71,6 +105,7 @@ jobs:
           EOF
 
       - name: Run format in write mode
+        if: ${{ inputs.mode == 'ref' }}
         id: format
         uses: devops-infra/action-format-hcl@v1
         with:
@@ -78,15 +113,38 @@ jobs:
           diff: "true"
           dir: tests/e2e-hcl-write
 
+      - name: Run format via docker image (preview)
+        if: ${{ inputs.mode == 'image' }}
+        env:
+          ACTION_IMAGE: devopsinfra/action-format-hcl:${{ inputs.image_tag }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          docker pull "${ACTION_IMAGE}"
+          docker run --rm \
+            -e INPUT_WRITE=true \
+            -e INPUT_DIFF=true \
+            -e INPUT_DIR=tests/e2e-hcl-write \
+            -v "$PWD:/github/workspace" \
+            -w /github/workspace \
+            "${ACTION_IMAGE}"
+
       - name: Show files changed output
+        if: ${{ inputs.mode == 'ref' }}
         run: echo "files_changed=${{ steps.format.outputs.files_changed }}"
+
+      - name: Verify image mode execution
+        if: ${{ inputs.mode == 'image' }}
+        run: test -f tests/e2e-hcl-write/main.tf
 
   format-check-malformed-files:
     name: Check mode on malformed files reports failure
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Create malformed Terraform file
         run: |
@@ -94,6 +152,7 @@ jobs:
           printf 'variable "foo" {\ntype    =   string\ndescription="bad spacing"\n}\n' > tests/e2e-hcl-malformed/malformed.tf
 
       - name: Check malformed files - expected to fail
+        if: ${{ inputs.mode == 'ref' }}
         id: check
         uses: devops-infra/action-format-hcl@v1
         continue-on-error: true
@@ -101,7 +160,29 @@ jobs:
           check: "true"
           dir: tests/e2e-hcl-malformed
 
+      - name: Check malformed files via docker image - expected to fail
+        if: ${{ inputs.mode == 'image' }}
+        env:
+          ACTION_IMAGE: devopsinfra/action-format-hcl:${{ inputs.image_tag }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          docker pull "${ACTION_IMAGE}"
+          set +e
+          docker run --rm \
+            -e INPUT_CHECK=true \
+            -e INPUT_DIR=tests/e2e-hcl-malformed \
+            -v "$PWD:/github/workspace" \
+            -w /github/workspace \
+            "${ACTION_IMAGE}"
+          rc=$?
+          set -e
+          test "$rc" -ne 0
+
       - name: Verify action detected formatting issues
+        if: ${{ inputs.mode == 'ref' }}
         run: test "${{ steps.check.outcome }}" = "failure"
 
   format-list-with-diff:
@@ -109,7 +190,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Create Terraform files for list/diff mode
         run: |
@@ -123,6 +204,7 @@ jobs:
           EOF
 
       - name: Run format in list and diff mode
+        if: ${{ inputs.mode == 'ref' }}
         id: format
         uses: devops-infra/action-format-hcl@v1
         with:
@@ -131,5 +213,29 @@ jobs:
           write: "false"
           dir: tests/e2e-hcl-list
 
+      - name: Run format via docker image (preview)
+        if: ${{ inputs.mode == 'image' }}
+        env:
+          ACTION_IMAGE: devopsinfra/action-format-hcl:${{ inputs.image_tag }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          docker pull "${ACTION_IMAGE}"
+          docker run --rm \
+            -e INPUT_LIST=true \
+            -e INPUT_DIFF=true \
+            -e INPUT_WRITE=false \
+            -e INPUT_DIR=tests/e2e-hcl-list \
+            -v "$PWD:/github/workspace" \
+            -w /github/workspace \
+            "${ACTION_IMAGE}"
+
       - name: Show files changed output
+        if: ${{ inputs.mode == 'ref' }}
         run: echo "files_changed=${{ steps.format.outputs.files_changed }}"
+
+      - name: Verify image mode execution
+        if: ${{ inputs.mode == 'image' }}
+        run: test -f tests/e2e-hcl-list/variables.tf

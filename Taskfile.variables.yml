@@ -28,6 +28,13 @@ vars:
       fi
   PROJECT_DIR_NAME:
     sh: basename "$PWD"
+  GH_REPO:
+    sh: |
+      if [ -n "${GH_REPO:-}" ]; then
+        echo "${GH_REPO}"
+      else
+        gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null || echo "devops-infra/end-to-end-tests"
+      fi
   VERSION_OVERRIDE:
     sh: echo "${VERSION_OVERRIDE:-}"
   VERSION:

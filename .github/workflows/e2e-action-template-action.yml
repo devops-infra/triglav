@@ -1,0 +1,81 @@
+name: (E2E) Template Action
+
+on:
+  workflow_call:
+    inputs:
+      action_ref:
+        description: Git ref of devops-infra/template-action to validate
+        required: false
+        type: string
+        default: v1
+      mode:
+        description: Execution mode (ref or image)
+        required: false
+        type: string
+        default: ref
+      image_tag:
+        description: Image tag for docker mode (for example v1.2.3-test or v1.2.3-rc)
+        required: false
+        type: string
+        default: ''
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  template-action-input-output:
+    name: Validate template-action input/output contract
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run template action in ref mode
+        if: ${{ inputs.mode == 'ref' }}
+        id: action
+        uses: devops-infra/template-action@v1
+        with:
+          foobar: e2e-template-value
+          debug: 'false'
+
+      - name: Run template action via docker image (preview)
+        if: ${{ inputs.mode == 'image' }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          echo "Image mode placeholder for devopsinfra/template-action:${{ inputs.image_tag }}"
+          echo "Use ref mode for authoritative validation until image-mode harness is finalized."
+
+      - name: Verify outputs
+        if: ${{ inputs.mode == 'ref' }}
+        run: |
+          test "${{ steps.action.outputs.foobar }}" = "e2e-template-value"
+          test "${{ steps.action.outputs.barfoo }}" = "e2e-template-value"
+
+  template-action-debug:
+    name: Validate template-action debug mode
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run template action with debug enabled
+        if: ${{ inputs.mode == 'ref' }}
+        id: action
+        uses: devops-infra/template-action@v1
+        with:
+          foobar: e2e-debug-value
+          debug: 'true'
+
+      - name: Run template action via docker image (preview)
+        if: ${{ inputs.mode == 'image' }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          echo "Image mode placeholder for devopsinfra/template-action:${{ inputs.image_tag }}"
+          echo "Use ref mode for authoritative validation until image-mode harness is finalized."
+
+      - name: Verify outputs
+        if: ${{ inputs.mode == 'ref' }}
+        run: |
+          test "${{ steps.action.outputs.foobar }}" = "e2e-debug-value"
+          test "${{ steps.action.outputs.barfoo }}" = "e2e-debug-value"
