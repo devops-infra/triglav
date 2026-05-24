@@ -33,8 +33,8 @@ permissions:
   contents: read
 
 jobs:
-  basic-tflint:
-    name: Basic TFLint on valid Terraform files
+  preflight:
+    name: Validate workflow inputs
     runs-on: ubuntu-latest
     steps:
       - name: Validate mode input
@@ -47,6 +47,11 @@ jobs:
               ;;
           esac
 
+  basic-tflint:
+    name: Basic TFLint on valid Terraform files
+    needs: [preflight]
+    runs-on: ubuntu-latest
+    steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
@@ -96,6 +101,7 @@ jobs:
 
   tflint-with-dir-filter:
     name: TFLint with specific directory filter
+    needs: [preflight]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -156,6 +162,7 @@ jobs:
 
   tflint-no-fail-on-changes:
     name: TFLint with fail_on_changes disabled
+    needs: [preflight]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -205,6 +212,7 @@ jobs:
 
   tflint-with-custom-config:
     name: TFLint with explicit tflint_config
+    needs: [preflight]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -264,6 +272,7 @@ jobs:
 
   tflint-with-custom-params:
     name: TFLint with custom tflint_params
+    needs: [preflight]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

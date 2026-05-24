@@ -33,8 +33,8 @@ permissions:
   contents: read
 
 jobs:
-  template-action-input-output:
-    name: Validate template-action input/output contract
+  preflight:
+    name: Validate workflow inputs
     runs-on: ubuntu-latest
     steps:
       - name: Validate mode input
@@ -47,6 +47,11 @@ jobs:
               ;;
           esac
 
+  template-action-input-output:
+    name: Validate template-action input/output contract
+    needs: [preflight]
+    runs-on: ubuntu-latest
+    steps:
       - name: Run template action in ref mode
         if: ${{ inputs.mode == 'ref' }}
         id: action
@@ -73,6 +78,7 @@ jobs:
 
   template-action-debug:
     name: Validate template-action debug mode
+    needs: [preflight]
     runs-on: ubuntu-latest
     steps:
       - name: Run template action with debug enabled

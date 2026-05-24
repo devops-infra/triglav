@@ -33,8 +33,8 @@ permissions:
   contents: read
 
 jobs:
-  basic-copy-vars:
-    name: Copy variables from central file to modules
+  preflight:
+    name: Validate workflow inputs
     runs-on: ubuntu-latest
     steps:
       - name: Validate mode input
@@ -47,6 +47,11 @@ jobs:
               ;;
           esac
 
+  basic-copy-vars:
+    name: Copy variables from central file to modules
+    needs: [preflight]
+    runs-on: ubuntu-latest
+    steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
@@ -127,6 +132,7 @@ jobs:
 
   copy-vars-custom-paths:
     name: Copy variables with custom directory and file paths
+    needs: [preflight]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -202,6 +208,7 @@ jobs:
 
   copy-vars-fail-on-missing:
     name: Fail when module uses variable missing from central file
+    needs: [preflight]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

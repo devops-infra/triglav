@@ -33,8 +33,8 @@ permissions:
   contents: read
 
 jobs:
-  validate-basic:
-    name: Validate valid Terraform configuration
+  preflight:
+    name: Validate workflow inputs
     runs-on: ubuntu-latest
     steps:
       - name: Validate mode input
@@ -47,6 +47,11 @@ jobs:
               ;;
           esac
 
+  validate-basic:
+    name: Validate valid Terraform configuration
+    needs: [preflight]
+    runs-on: ubuntu-latest
+    steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
@@ -98,6 +103,7 @@ jobs:
 
   validate-with-dir-filter:
     name: Validate with explicit directory filter
+    needs: [preflight]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

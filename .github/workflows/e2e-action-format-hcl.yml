@@ -33,8 +33,8 @@ permissions:
   contents: read
 
 jobs:
-  format-check-clean-files:
-    name: Check mode on already-formatted files passes
+  preflight:
+    name: Validate workflow inputs
     runs-on: ubuntu-latest
     steps:
       - name: Validate mode input
@@ -47,6 +47,11 @@ jobs:
               ;;
           esac
 
+  format-check-clean-files:
+    name: Check mode on already-formatted files passes
+    needs: [preflight]
+    runs-on: ubuntu-latest
+    steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
@@ -100,6 +105,7 @@ jobs:
 
   format-write-mode:
     name: Write mode formats and rewrites files
+    needs: [preflight]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -160,6 +166,7 @@ jobs:
 
   format-check-malformed-files:
     name: Check mode on malformed files reports failure
+    needs: [preflight]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -206,6 +213,7 @@ jobs:
 
   format-list-with-diff:
     name: List and diff mode on formatted files
+    needs: [preflight]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

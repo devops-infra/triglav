@@ -35,8 +35,8 @@ permissions:
   issues: write
 
 jobs:
-  basic-pull-request:
-    name: Basic pull request creation
+  preflight:
+    name: Validate workflow inputs
     runs-on: ubuntu-latest
     steps:
       - name: Validate mode input
@@ -49,6 +49,11 @@ jobs:
               ;;
           esac
 
+  basic-pull-request:
+    name: Basic pull request creation
+    needs: [preflight]
+    runs-on: ubuntu-latest
+    steps:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
@@ -106,6 +111,7 @@ jobs:
 
   pull-request-with-title-body:
     name: Pull request with custom title and body
+    needs: [preflight]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -169,6 +175,7 @@ jobs:
 
   pull-request-with-repository-path:
     name: Pull request using custom checkout path and explicit repository
+    needs: [preflight]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository into custom path
@@ -233,6 +240,7 @@ jobs:
 
   pull-request-draft-with-diff:
     name: Draft pull request with get_diff enabled
+    needs: [preflight]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
