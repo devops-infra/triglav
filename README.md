@@ -57,7 +57,9 @@ task lint
 task pre-commit
 task e2e:list-workflows
 task e2e:run WORKFLOW=e2e-action-pull-request.yml
+task e2e:run WORKFLOW=e2e-action-format-hcl.yml MODE=image IMAGE_TAG=v1.2.3-test
 task e2e:run:all
+task e2e:run:all MODE=image IMAGE_TAG=v1.2.3-test
 task test:coverage:report
 task test:coverage:gate
 ```
@@ -85,6 +87,7 @@ Manual dispatch examples:
 ```bash
 task e2e:run WORKFLOW=e2e-action-commit-push.yml
 task e2e:run:all
+task e2e:run WORKFLOW=e2e-action-tflint.yml MODE=image IMAGE_TAG=v1.2.3-test
 ```
 
 This repository primarily relies on the built-in `${{ secrets.GITHUB_TOKEN }}` in workflow runs.

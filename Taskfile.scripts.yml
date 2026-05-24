@@ -92,12 +92,15 @@ tasks:
 
   lint:pylint:
     desc: Lint Python files with pylint
+    shell: bash
     cmds:
       - |
         set -eu
         echo "▶️ Running pylint..."
-        files="$(git ls-files '*.py' || true)"
-        if [ -z "${files}" ]; then
+        tmp_files="$(mktemp)"
+        trap 'rm -f "$tmp_files"' EXIT
+        git ls-files -z '*.py' > "$tmp_files"
+        if [ ! -s "$tmp_files" ]; then
           echo "ℹ️ No Python files found, skipping pylint"
           exit 0
         fi
@@ -105,7 +108,7 @@ tasks:
           echo "ℹ️ pylint not found, installing locally..."
           python3 -m pip install --user --quiet pylint==3.3.4
         fi
-        python3 -m pylint --rcfile .pylintrc ${files}
+        xargs -0 python3 -m pylint --rcfile .pylintrc < "$tmp_files"
         echo "✅ pylint passed"
 
   e2e:list-workflows:
@@ -134,7 +137,9 @@ tasks:
           echo "ERROR: set WORKFLOW, e.g. WORKFLOW=e2e-action-pull-request.yml"
           exit 1
         fi
-        gh workflow run "$workflow" --repo "{{.GH_REPO}}" --ref "$workflow_ref"
+        mode="${MODE:-ref}"
+        image_tag="${IMAGE_TAG:-}"
+        gh workflow run "$workflow" --repo "{{.GH_REPO}}" --ref "$workflow_ref" -f mode="$mode" -f image_tag="$image_tag"
         echo "Triggered workflow '$workflow' in {{.GH_REPO}} on ref '$workflow_ref'"
 
   e2e:run:all:
@@ -151,9 +156,11 @@ tasks:
           exit 0
         fi
         mapfile -t workflows < <(printf '%s\n' "${files[@]}" | xargs -n1 basename | sort)
+        mode="${MODE:-ref}"
+        image_tag="${IMAGE_TAG:-}"
         for workflow in "${workflows[@]}"; do
           echo "Triggering ${workflow} in {{.GH_REPO}} on ref ${workflow_ref}"
-          gh workflow run "$workflow" --repo "{{.GH_REPO}}" --ref "$workflow_ref"
+          gh workflow run "$workflow" --repo "{{.GH_REPO}}" --ref "$workflow_ref" -f mode="$mode" -f image_tag="$image_tag"
           sleep 1
         done
         echo "Triggered ${#workflows[@]} workflow(s) on ref '${workflow_ref}'."
