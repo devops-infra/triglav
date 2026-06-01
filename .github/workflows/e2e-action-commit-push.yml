@@ -66,12 +66,12 @@ jobs:
           fetch-depth: 0
 
       - name: Create test file
-        run: echo "E2E basic commit test $(date -u)" > e2e-test-file.txt
+        run: echo "E2E basic commit test $(date -u)" > e2e-test-file.md
 
       - name: Commit and push to new branch
         if: ${{ inputs.mode == 'ref' }}
         id: commit
-        uses: devops-infra/action-commit-push@v1
+        uses: devops-infra/action-commit-push@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           commit_message: "[E2E] Basic commit test"
@@ -110,12 +110,12 @@ jobs:
           fetch-depth: 0
 
       - name: Create test file
-        run: echo "E2E prefix message test $(date -u)" > e2e-prefix-test.txt
+        run: echo "E2E prefix message test $(date -u)" > e2e-prefix-test.md
 
       - name: Commit with custom prefix and message
         if: ${{ inputs.mode == 'ref' }}
         id: commit
-        uses: devops-infra/action-commit-push@v1
+        uses: devops-infra/action-commit-push@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           commit_prefix: "[E2E-PREFIX]"
@@ -157,7 +157,7 @@ jobs:
       - name: Commit with no file changes to new branch
         if: ${{ inputs.mode == 'ref' }}
         id: commit
-        uses: devops-infra/action-commit-push@v1
+        uses: devops-infra/action-commit-push@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           allow_empty_commit: "true"
@@ -195,12 +195,12 @@ jobs:
           fetch-depth: 0
 
       - name: Create test file
-        run: echo "E2E timestamp branch test $(date -u)" > e2e-timestamp-test.txt
+        run: echo "E2E timestamp branch test $(date -u)" > e2e-timestamp-test.md
 
       - name: Commit and push to timestamped branch
         if: ${{ inputs.mode == 'ref' }}
         id: commit
-        uses: devops-infra/action-commit-push@v1
+        uses: devops-infra/action-commit-push@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           add_timestamp: "true"
@@ -244,12 +244,12 @@ jobs:
           path: repo
 
       - name: Create test file in custom path
-        run: echo "E2E repository path test $(date -u)" > repo/e2e-repository-path.txt
+        run: echo "E2E repository path test $(date -u)" > repo/e2e-repository-path.md
 
       - name: Commit and push using repository_path
         if: ${{ inputs.mode == 'ref' }}
         id: commit
-        uses: devops-infra/action-commit-push@v1
+        uses: devops-infra/action-commit-push@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           repository_path: repo
@@ -271,7 +271,7 @@ jobs:
         run: |
           echo "files_changed=${{ steps.commit.outputs.files_changed }}"
           test -n "${{ steps.commit.outputs.branch_name }}"
-          grep -Fq "e2e-repository-path.txt" <<'EOF'
+          grep -Fq "e2e-repository-path.md" <<'EOF'
           ${{ steps.commit.outputs.files_changed }}
           EOF
 
@@ -299,21 +299,21 @@ jobs:
           target_branch="test/e2e-commit-push-reset-${{ github.run_id }}"
 
           git checkout -b "${base_branch}"
-          echo "base" > e2e-reset-base.txt
-          git add e2e-reset-base.txt
+          echo "base" > e2e-reset-base.md
+          git add e2e-reset-base.md
           git commit -m "[E2E] base branch for reset"
           git push origin "${base_branch}"
 
           git checkout -b "${target_branch}" "${base_branch}"
-          echo "legacy" > e2e-reset-legacy.txt
-          git add e2e-reset-legacy.txt
+          echo "legacy" > e2e-reset-legacy.md
+          git add e2e-reset-legacy.md
           git commit -m "[E2E] legacy target branch content"
           git push origin "${target_branch}"
 
       - name: Reset target branch using action
         if: ${{ inputs.mode == 'ref' }}
         id: reset
-        uses: devops-infra/action-commit-push@v1
+        uses: devops-infra/action-commit-push@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           target_branch: test/e2e-commit-push-reset-${{ github.run_id }}
@@ -336,8 +336,8 @@ jobs:
         run: |
           test -n "${{ steps.reset.outputs.branch_name }}"
           git fetch origin test/e2e-commit-push-reset-${{ github.run_id }}
-          git show origin/test/e2e-commit-push-reset-${{ github.run_id }}:e2e-reset-base.txt >/dev/null
-          if git show origin/test/e2e-commit-push-reset-${{ github.run_id }}:e2e-reset-legacy.txt >/dev/null 2>&1; then
+          git show origin/test/e2e-commit-push-reset-${{ github.run_id }}:e2e-reset-base.md >/dev/null
+          if git show origin/test/e2e-commit-push-reset-${{ github.run_id }}:e2e-reset-legacy.md >/dev/null 2>&1; then
             echo "Expected legacy file to be removed after reset_target_branch=true"
             exit 1
           fi
@@ -368,20 +368,20 @@ jobs:
           target_branch="test/e2e-commit-push-conflict-target-${{ github.run_id }}"
 
           git checkout -b "${base_branch}"
-          printf 'value=one\n' > e2e-rebase-conflict.txt
-          git add e2e-rebase-conflict.txt
+          printf 'value=one\n' > e2e-rebase-conflict.md
+          git add e2e-rebase-conflict.md
           git commit -m "[E2E] base commit"
           git push origin "${base_branch}"
 
           git checkout -b "${target_branch}" "${base_branch}"
-          printf 'value=target\n' > e2e-rebase-conflict.txt
-          git add e2e-rebase-conflict.txt
+          printf 'value=target\n' > e2e-rebase-conflict.md
+          git add e2e-rebase-conflict.md
           git commit -m "[E2E] target diverges"
           git push origin "${target_branch}"
 
           git checkout "${base_branch}"
-          printf 'value=base\n' > e2e-rebase-conflict.txt
-          git add e2e-rebase-conflict.txt
+          printf 'value=base\n' > e2e-rebase-conflict.md
+          git add e2e-rebase-conflict.md
           git commit -m "[E2E] base diverges"
           git push origin "${base_branch}"
 
@@ -389,7 +389,7 @@ jobs:
         if: ${{ inputs.mode == 'ref' }}
         id: strict
         continue-on-error: true
-        uses: devops-infra/action-commit-push@v1
+        uses: devops-infra/action-commit-push@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           target_branch: test/e2e-commit-push-conflict-target-${{ github.run_id }}
@@ -432,19 +432,19 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -b test/e2e-commit-push-amend-${{ github.run_id }}
-          echo "v1" > e2e-amend-test.txt
-          git add e2e-amend-test.txt
+          echo "v1" > e2e-amend-test.md
+          git add e2e-amend-test.md
           git commit -m "E2E: initial commit for amend test"
           git push origin test/e2e-commit-push-amend-${{ github.run_id }}
 
       - name: Add more content to file
         if: ${{ inputs.mode == 'ref' }}
-        run: echo "v2" >> e2e-amend-test.txt
+        run: echo "v2" >> e2e-amend-test.md
 
       - name: Amend commit keeping original message
         if: ${{ inputs.mode == 'ref' }}
         id: amend
-        uses: devops-infra/action-commit-push@v1
+        uses: devops-infra/action-commit-push@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           amend: "true"
