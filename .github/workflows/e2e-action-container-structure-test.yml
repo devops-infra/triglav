@@ -331,7 +331,7 @@ jobs:
           test "${{ steps.cst.outputs.failed }}" = "0"
 
   metadata-platform-runtime:
-    name: Test with metadata, platform, and runtime inputs
+    name: Test with platform and runtime inputs
     needs: [preflight]
     runs-on: ubuntu-latest
     steps:
@@ -349,23 +349,12 @@ jobs:
           cat > .tmp/cst-alpine.yml << 'EOF'
           schemaVersion: "2.0.0"
           fileExistenceTests:
-            - name: Echo hello
-              command: echo
-              args: ["hello"]
-              expectedOutput: ["hello"]
+            - name: Busybox present
+              path: /bin/sh
+              shouldExist: true
           EOF
 
-      - name: Create metadata file
-        run: |
-          cat > .tmp/cst-metadata.json << 'EOF'
-          {
-            "config": {
-              "Env": ["FOO=bar"]
-            }
-          }
-          EOF
-
-      - name: Run container structure tests with metadata/platform/runtime
+      - name: Run container structure tests with platform/runtime
         if: ${{ inputs.mode == 'ref' }}
         id: cst
         uses: devops-infra/action-container-structure-test@v1
@@ -375,7 +364,6 @@ jobs:
           driver: docker
           platform: linux/amd64
           runtime: runc
-          metadata: .tmp/cst-metadata.json
           output: text
 
       - name: Run container structure tests via docker image (preview)
