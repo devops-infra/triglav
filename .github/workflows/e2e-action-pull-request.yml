@@ -75,7 +75,7 @@ jobs:
           git checkout -b test/e2e-pr-basic-${{ github.run_id }}
           echo "E2E PR basic test $(date -u)" > e2e-pr-test.txt
           git add e2e-pr-test.txt
-          git commit -m "[E2E] Basic PR test"
+          git commit -m "test(pull-request): basic PR test"
           git push origin test/e2e-pr-basic-${{ github.run_id }}
 
       - name: Create pull request
@@ -84,7 +84,7 @@ jobs:
         uses: devops-infra/action-pull-request@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          title: "[E2E] Basic pull request test - safe to close"
+          title: "test(pull-request): basic pull request test - safe to close"
           body: "Automated end-to-end test pull request. Will be closed automatically."
           target_branch: master
 
@@ -135,7 +135,7 @@ jobs:
           git checkout -b test/e2e-pr-custom-${{ github.run_id }}
           echo "E2E PR custom title/body test $(date -u)" > e2e-pr-custom-test.txt
           git add e2e-pr-custom-test.txt
-          git commit -m "[E2E] Custom title/body PR test"
+          git commit -m "test(pull-request): custom title/body PR test"
           git push origin test/e2e-pr-custom-${{ github.run_id }}
 
       - name: Create pull request with custom title and body
@@ -144,7 +144,7 @@ jobs:
         uses: devops-infra/action-pull-request@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          title: "[E2E] Custom title test - safe to close"
+          title: "test(pull-request): custom title test - safe to close"
           body: |
             Automated end-to-end test.
             Testing custom title and body fields.
@@ -201,7 +201,7 @@ jobs:
           git checkout -b test/e2e-pr-repo-path-${{ github.run_id }}
           echo "E2E PR repository_path test $(date -u)" > e2e-pr-path-test.txt
           git add e2e-pr-path-test.txt
-          git commit -m "[E2E] PR repository_path test"
+          git commit -m "test(pull-request): repository path PR test"
           git push origin test/e2e-pr-repo-path-${{ github.run_id }}
 
       - name: Create pull request with repository and repository_path
@@ -212,7 +212,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{ github.repository }}
           repository_path: work/repo
-          title: "[E2E] Repository path PR test - safe to close"
+          title: "test(pull-request): repository path PR test - safe to close"
           body: "Automated end-to-end test for repository_path input."
           target_branch: master
 
@@ -264,7 +264,7 @@ jobs:
           git checkout -b test/e2e-pr-draft-${{ github.run_id }}
           echo "E2E draft PR test $(date -u)" > e2e-pr-draft-test.txt
           git add e2e-pr-draft-test.txt
-          git commit -m "[E2E] Draft PR with diff test"
+          git commit -m "test(pull-request): draft PR with diff test"
           git push origin test/e2e-pr-draft-${{ github.run_id }}
 
       - name: Create draft pull request with diff injection
@@ -273,7 +273,7 @@ jobs:
         uses: devops-infra/action-pull-request@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          title: "[E2E] Draft PR with diff - safe to close"
+          title: "test(pull-request): draft PR with diff - safe to close"
           body: |
             Automated end-to-end test.
             <!-- Diff commits - START -->
