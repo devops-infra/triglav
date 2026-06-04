@@ -74,7 +74,7 @@ jobs:
         uses: devops-infra/action-commit-push@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          commit_message: "[E2E] Basic commit test"
+          commit_message: "test(commit-push): basic commit test"
           target_branch: test/e2e-commit-push-basic-${{ github.run_id }}
 
       - name: Commit and push via docker image (preview)
@@ -122,8 +122,8 @@ jobs:
         uses: devops-infra/action-commit-push@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          commit_prefix: "[E2E-PREFIX]"
-          commit_message: " Custom message test"
+          commit_prefix: "test(commit-push): "
+          commit_message: "custom message test"
           target_branch: test/e2e-commit-push-prefix-${{ github.run_id }}
 
       - name: Commit via docker image (preview)
@@ -169,7 +169,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           allow_empty_commit: "true"
-          commit_message: "[E2E] Empty commit test"
+          commit_message: "test(commit-push): empty commit test"
           target_branch: test/e2e-commit-push-empty-${{ github.run_id }}
 
       - name: Empty commit via docker image (preview)
@@ -216,7 +216,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           add_timestamp: "true"
-          commit_message: "[E2E] Timestamp branch test"
+          commit_message: "test(commit-push): timestamp branch test"
           target_branch: test/e2e-commit-push-timestamp
 
       - name: Commit via docker image (preview)
@@ -265,7 +265,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           repository_path: repo
-          commit_message: "[E2E] Repository path test"
+          commit_message: "test(commit-push): repository path test"
           target_branch: test/e2e-commit-push-path-${{ github.run_id }}
 
       - name: Commit via docker image (preview)
@@ -318,13 +318,13 @@ jobs:
           git checkout -b "${base_branch}"
           echo "base" > e2e-reset-base.md
           git add e2e-reset-base.md
-          git commit -m "[E2E] base branch for reset"
+          git commit -m "test(commit-push): base branch for reset"
           git push origin "${base_branch}"
 
           git checkout -b "${target_branch}" "${base_branch}"
           echo "legacy" > e2e-reset-legacy.md
           git add e2e-reset-legacy.md
-          git commit -m "[E2E] legacy target branch content"
+          git commit -m "test(commit-push): legacy target branch content"
           git push origin "${target_branch}"
 
       - name: Reset target branch using action
@@ -393,19 +393,19 @@ jobs:
           git checkout -b "${base_branch}"
           printf 'value=one\n' > e2e-rebase-conflict.md
           git add e2e-rebase-conflict.md
-          git commit -m "[E2E] base commit"
+          git commit -m "test(commit-push): base commit"
           git push origin "${base_branch}"
 
           git checkout -b "${target_branch}" "${base_branch}"
           printf 'value=target\n' > e2e-rebase-conflict.md
           git add e2e-rebase-conflict.md
-          git commit -m "[E2E] target diverges"
+          git commit -m "test(commit-push): target diverges"
           git push origin "${target_branch}"
 
           git checkout "${base_branch}"
           printf 'value=base\n' > e2e-rebase-conflict.md
           git add e2e-rebase-conflict.md
-          git commit -m "[E2E] base diverges"
+          git commit -m "test(commit-push): base diverges"
           git push origin "${base_branch}"
 
       - name: Run action with strict rebase conflict handling
@@ -463,7 +463,7 @@ jobs:
           git checkout -b test/e2e-commit-push-amend-${{ github.run_id }}
           echo "v1" > e2e-amend-test.md
           git add e2e-amend-test.md
-          git commit -m "E2E: initial commit for amend test"
+          git commit -m "test(commit-push): initial commit for amend test"
           git push origin test/e2e-commit-push-amend-${{ github.run_id }}
 
       - name: Add more content to file
