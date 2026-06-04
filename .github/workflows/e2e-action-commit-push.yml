@@ -96,8 +96,12 @@ jobs:
           test -n "${{ steps.commit.outputs.files_changed }}"
 
       - name: Cleanup - delete test branch
-        if: always()
-        run: git push origin --delete test/e2e-commit-push-basic-${{ github.run_id }} 2>/dev/null || true
+        if: ${{ always() && inputs.mode == 'ref' }}
+        run: |
+          branch="test/e2e-commit-push-basic-${{ github.run_id }}"
+          if git ls-remote --exit-code --heads origin "${branch}" >/dev/null 2>&1; then
+            git push origin --delete "${branch}"
+          fi
 
   commit-with-prefix-message:
     name: Commit with custom prefix and message
@@ -141,8 +145,12 @@ jobs:
           test -n "${{ steps.commit.outputs.files_changed }}"
 
       - name: Cleanup - delete test branch
-        if: always()
-        run: git push origin --delete test/e2e-commit-push-prefix-${{ github.run_id }} 2>/dev/null || true
+        if: ${{ always() && inputs.mode == 'ref' }}
+        run: |
+          branch="test/e2e-commit-push-prefix-${{ github.run_id }}"
+          if git ls-remote --exit-code --heads origin "${branch}" >/dev/null 2>&1; then
+            git push origin --delete "${branch}"
+          fi
 
   allow-empty-commit:
     name: Allow empty commit with no file changes
@@ -181,8 +189,12 @@ jobs:
           test -n "${{ steps.commit.outputs.branch_name }}"
 
       - name: Cleanup - delete test branch
-        if: always()
-        run: git push origin --delete test/e2e-commit-push-empty-${{ github.run_id }} 2>/dev/null || true
+        if: ${{ always() && inputs.mode == 'ref' }}
+        run: |
+          branch="test/e2e-commit-push-empty-${{ github.run_id }}"
+          if git ls-remote --exit-code --heads origin "${branch}" >/dev/null 2>&1; then
+            git push origin --delete "${branch}"
+          fi
 
   commit-with-timestamp-branch:
     name: Commit to timestamped branch name
@@ -228,8 +240,8 @@ jobs:
         if: ${{ always() && inputs.mode == 'ref' }}
         run: |
           branch_name="${{ steps.commit.outputs.branch_name }}"
-          if [ -n "${branch_name}" ]; then
-            git push origin --delete "${branch_name}" 2>/dev/null || true
+          if [ -n "${branch_name}" ] && git ls-remote --exit-code --heads origin "${branch_name}" >/dev/null 2>&1; then
+            git push origin --delete "${branch_name}"
           fi
 
   commit-with-repository-path:
@@ -276,8 +288,13 @@ jobs:
           EOF
 
       - name: Cleanup - delete test branch
-        if: always()
-        run: git push origin --delete test/e2e-commit-push-path-${{ github.run_id }} 2>/dev/null || true
+        if: ${{ always() && inputs.mode == 'ref' }}
+        run: |
+          cd repo
+          branch="test/e2e-commit-push-path-${{ github.run_id }}"
+          if git ls-remote --exit-code --heads origin "${branch}" >/dev/null 2>&1; then
+            git push origin --delete "${branch}"
+          fi
 
   reset-target-branch-to-base:
     name: Reset target branch to base branch
@@ -343,10 +360,16 @@ jobs:
           fi
 
       - name: Cleanup - delete test branches
-        if: always()
+        if: ${{ always() && inputs.mode == 'ref' }}
         run: |
-          git push origin --delete test/e2e-commit-push-reset-${{ github.run_id }} 2>/dev/null || true
-          git push origin --delete test/e2e-commit-push-base-${{ github.run_id }} 2>/dev/null || true
+          for branch in \
+            test/e2e-commit-push-reset-${{ github.run_id }} \
+            test/e2e-commit-push-base-${{ github.run_id }}
+          do
+            if git ls-remote --exit-code --heads origin "${branch}" >/dev/null 2>&1; then
+              git push origin --delete "${branch}"
+            fi
+          done
 
   rebase-conflict-fails-when-strict:
     name: Rebase conflict fails when fail_on_rebase_conflict=true
@@ -411,10 +434,16 @@ jobs:
         run: test "${{ steps.strict.outcome }}" = "failure"
 
       - name: Cleanup - delete test branches
-        if: always()
+        if: ${{ always() && inputs.mode == 'ref' }}
         run: |
-          git push origin --delete test/e2e-commit-push-conflict-target-${{ github.run_id }} 2>/dev/null || true
-          git push origin --delete test/e2e-commit-push-conflict-base-${{ github.run_id }} 2>/dev/null || true
+          for branch in \
+            test/e2e-commit-push-conflict-target-${{ github.run_id }} \
+            test/e2e-commit-push-conflict-base-${{ github.run_id }}
+          do
+            if git ls-remote --exit-code --heads origin "${branch}" >/dev/null 2>&1; then
+              git push origin --delete "${branch}"
+            fi
+          done
 
   amend-commit:
     name: Amend previous commit with force-with-lease
@@ -468,5 +497,9 @@ jobs:
           test -n "${{ steps.amend.outputs.branch_name }}"
 
       - name: Cleanup - delete test branch
-        if: always()
-        run: git push origin --delete test/e2e-commit-push-amend-${{ github.run_id }} 2>/dev/null || true
+        if: ${{ always() && inputs.mode == 'ref' }}
+        run: |
+          branch="test/e2e-commit-push-amend-${{ github.run_id }}"
+          if git ls-remote --exit-code --heads origin "${branch}" >/dev/null 2>&1; then
+            git push origin --delete "${branch}"
+          fi
