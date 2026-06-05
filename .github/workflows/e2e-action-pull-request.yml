@@ -87,10 +87,18 @@ jobs:
           git commit -m "test(pull-request): basic PR test"
           git push origin test/e2e-pr-basic-${{ github.run_id }}
 
+      - name: Checkout action under test
+        if: ${{ inputs.mode == 'ref' }}
+        uses: actions/checkout@v6
+        with:
+          repository: devops-infra/action-pull-request
+          ref: ${{ inputs.action_ref }}
+          path: .tmp/action-pull-request
+
       - name: Create pull request
         if: ${{ inputs.mode == 'ref' }}
         id: pr
-        uses: devops-infra/action-pull-request@${{ inputs.action_ref }}
+        uses: ./.tmp/action-pull-request
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           title: "test(pull-request): basic pull request test - safe to close"
@@ -176,10 +184,18 @@ jobs:
           git commit -m "test(pull-request): custom title/body PR test"
           git push origin test/e2e-pr-custom-${{ github.run_id }}
 
+      - name: Checkout action under test
+        if: ${{ inputs.mode == 'ref' }}
+        uses: actions/checkout@v6
+        with:
+          repository: devops-infra/action-pull-request
+          ref: ${{ inputs.action_ref }}
+          path: .tmp/action-pull-request
+
       - name: Create pull request with custom title and body
         if: ${{ inputs.mode == 'ref' }}
         id: pr
-        uses: devops-infra/action-pull-request@${{ inputs.action_ref }}
+        uses: ./.tmp/action-pull-request
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           title: "test(pull-request): custom title test - safe to close"
@@ -272,10 +288,18 @@ jobs:
           git commit -m "test(pull-request): repository path PR test"
           git push origin test/e2e-pr-repo-path-${{ github.run_id }}
 
+      - name: Checkout action under test
+        if: ${{ inputs.mode == 'ref' }}
+        uses: actions/checkout@v6
+        with:
+          repository: devops-infra/action-pull-request
+          ref: ${{ inputs.action_ref }}
+          path: .tmp/action-pull-request
+
       - name: Create pull request with repository and repository_path
         if: ${{ inputs.mode == 'ref' }}
         id: pr
-        uses: devops-infra/action-pull-request@${{ inputs.action_ref }}
+        uses: ./.tmp/action-pull-request
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           repository: ${{ github.repository }}
@@ -366,10 +390,18 @@ jobs:
           git commit -m "test(pull-request): draft PR with diff test"
           git push origin test/e2e-pr-draft-${{ github.run_id }}
 
+      - name: Checkout action under test
+        if: ${{ inputs.mode == 'ref' }}
+        uses: actions/checkout@v6
+        with:
+          repository: devops-infra/action-pull-request
+          ref: ${{ inputs.action_ref }}
+          path: .tmp/action-pull-request
+
       - name: Create draft pull request with diff injection
         if: ${{ inputs.mode == 'ref' }}
         id: pr
-        uses: devops-infra/action-pull-request@${{ inputs.action_ref }}
+        uses: ./.tmp/action-pull-request
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           title: "test(pull-request): draft PR with diff - safe to close"
