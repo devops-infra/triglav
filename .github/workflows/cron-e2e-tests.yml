@@ -16,7 +16,7 @@ on:
       image_tag:
         description: Action image tag used when mode=image (for example v1.2.3-test or v1.2.3-rc)
         required: false
-        default: ''
+        default: v1
         type: string
 
 permissions:
