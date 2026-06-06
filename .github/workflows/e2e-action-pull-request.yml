@@ -1,4 +1,4 @@
-name: (E2E) Action Pull Request
+name: (T) Action Pull Request
 
 on:
   workflow_call:

@@ -1,4 +1,4 @@
-name: (E2E) Action Terraform Validate
+name: (T) Action Terraform Validate
 
 on:
   workflow_call:

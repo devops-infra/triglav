@@ -1,4 +1,4 @@
-name: (E2E) Action Terraform Copy Vars
+name: (T) Action Terraform Copy Vars
 
 on:
   workflow_call:

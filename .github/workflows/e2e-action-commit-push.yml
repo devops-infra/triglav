@@ -1,4 +1,4 @@
-name: (E2E) Action Commit Push
+name: (T) Action Commit Push
 
 on:
   workflow_call:

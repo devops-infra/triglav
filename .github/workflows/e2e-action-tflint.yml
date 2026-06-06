@@ -1,4 +1,4 @@
-name: (E2E) Action TFLint
+name: (T) Action TFLint
 
 on:
   workflow_call:
