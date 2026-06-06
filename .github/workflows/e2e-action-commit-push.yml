@@ -356,11 +356,15 @@ jobs:
           sudo chown -R "$(id -u):$(id -g)" repo
           cd repo
           branch="test/e2e-commit-push-identity-${{ github.run_id }}"
+          local_sha="$(git rev-parse HEAD)"
           git fetch origin "${branch}"
-          test "$(git log -1 --format=%an FETCH_HEAD)" = "Release Automation"
-          test "$(git log -1 --format=%ae FETCH_HEAD)" = "release-bot@example.com"
-          test "$(git log -1 --format=%cn FETCH_HEAD)" = "Release Automation"
-          test "$(git log -1 --format=%ce FETCH_HEAD)" = "release-bot@example.com"
+          remote_sha="$(git rev-parse FETCH_HEAD)"
+          test "${local_sha}" = "${remote_sha}"
+          git log -1 --format='author=%an <%ae>%ncommitter=%cn <%ce>' HEAD
+          test "$(git log -1 --format=%an HEAD)" = "Release Automation"
+          test "$(git log -1 --format=%ae HEAD)" = "release-bot@example.com"
+          test "$(git log -1 --format=%cn HEAD)" = "Release Automation"
+          test "$(git log -1 --format=%ce HEAD)" = "release-bot@example.com"
 
       - name: Cleanup - delete test branch
         if: ${{ always() && inputs.mode == 'ref' }}
