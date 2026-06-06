@@ -311,12 +311,6 @@ jobs:
     needs: [preflight]
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          path: repo
-
       - name: Checkout action source for ref-mode validation
         if: ${{ inputs.mode == 'ref' }}
         uses: actions/checkout@v6
@@ -325,20 +319,56 @@ jobs:
           ref: ${{ inputs.action_ref }}
           path: action-src
 
-      - name: Create test file
-        run: echo "E2E identity override test $(date -u)" > repo/e2e-identity-override.md
+      - name: Prepare local repository
+        if: ${{ inputs.mode == 'ref' }}
+        run: |
+          set -euo pipefail
+          rm -rf "${RUNNER_TEMP}/identity-ws" "${RUNNER_TEMP}/identity-remote.git" "${RUNNER_TEMP}/identity-output.txt" "${RUNNER_TEMP}/identity-bin"
+          mkdir -p "${RUNNER_TEMP}/identity-ws" "${RUNNER_TEMP}/identity-bin"
+          git init "${RUNNER_TEMP}/identity-ws"
+          git -C "${RUNNER_TEMP}/identity-ws" branch -m master
+          git -C "${RUNNER_TEMP}/identity-ws" config user.name init
+          git -C "${RUNNER_TEMP}/identity-ws" config user.email init@example.com
+          touch "${RUNNER_TEMP}/identity-ws/.keep"
+          git -C "${RUNNER_TEMP}/identity-ws" add .
+          git -C "${RUNNER_TEMP}/identity-ws" commit -m init
+          git init --bare "${RUNNER_TEMP}/identity-remote.git"
+          git -C "${RUNNER_TEMP}/identity-ws" remote add origin "${RUNNER_TEMP}/identity-remote.git"
+          echo "E2E identity override test $(date -u)" > "${RUNNER_TEMP}/identity-ws/e2e-identity-override.md"
+          real_git="$(command -v git)"
+          cat > "${RUNNER_TEMP}/identity-bin/git" <<EOF
+          #!/bin/sh
+          if [ "\$1" = "push" ]; then
+            exit 0
+          fi
+          exec "${real_git}" "\$@"
+          EOF
+          chmod +x "${RUNNER_TEMP}/identity-bin/git"
+
+      - name: Build action image from source
+        if: ${{ inputs.mode == 'ref' }}
+        run: docker build -t triglav-action-commit-push:test ./action-src
 
       - name: Commit with custom identity
         if: ${{ inputs.mode == 'ref' }}
-        id: commit
-        uses: ./action-src
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          commit_message: "test(commit-push): custom identity test"
-          target_branch: test/e2e-commit-push-identity-${{ github.run_id }}
-          repository_path: repo
-          user_name: "Release Automation"
-          user_email: "release-bot@example.com"
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            -v "${RUNNER_TEMP}:/github/workspace" \
+            -v "${RUNNER_TEMP}:/github/runner_temp" \
+            -w /github/workspace \
+            -e PATH="/github/workspace/identity-bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
+            -e GITHUB_WORKSPACE=/github/workspace/identity-ws \
+            -e GITHUB_ACTOR="${{ github.actor }}" \
+            -e GITHUB_REPOSITORY=owner/repo \
+            -e GITHUB_TOKEN=fake \
+            -e GITHUB_OUTPUT=/github/runner_temp/identity-output.txt \
+            -e INPUT_ORGANIZATION_DOMAIN=github.com \
+            -e INPUT_COMMIT_MESSAGE="test(commit-push): custom identity test" \
+            -e INPUT_REPOSITORY_PATH=. \
+            -e INPUT_USER_NAME="Release Automation" \
+            -e INPUT_USER_EMAIL="release-bot@example.com" \
+            triglav-action-commit-push:test
 
       - name: Commit via docker image (preview)
         if: ${{ inputs.mode == 'image' }}
@@ -353,28 +383,13 @@ jobs:
       - name: Verify commit identity
         if: ${{ inputs.mode == 'ref' }}
         run: |
-          sudo chown -R "$(id -u):$(id -g)" repo
-          cd repo
-          branch="test/e2e-commit-push-identity-${{ github.run_id }}"
-          local_sha="$(git rev-parse HEAD)"
-          git fetch origin "${branch}"
-          remote_sha="$(git rev-parse FETCH_HEAD)"
-          test "${local_sha}" = "${remote_sha}"
+          sudo chown -R "$(id -u):$(id -g)" "${RUNNER_TEMP}/identity-ws"
+          cd "${RUNNER_TEMP}/identity-ws"
           git log -1 --format='author=%an <%ae>%ncommitter=%cn <%ce>' HEAD
           test "$(git log -1 --format=%an HEAD)" = "Release Automation"
           test "$(git log -1 --format=%ae HEAD)" = "release-bot@example.com"
           test "$(git log -1 --format=%cn HEAD)" = "Release Automation"
           test "$(git log -1 --format=%ce HEAD)" = "release-bot@example.com"
-
-      - name: Cleanup - delete test branch
-        if: ${{ always() && inputs.mode == 'ref' }}
-        run: |
-          sudo chown -R "$(id -u):$(id -g)" repo || true
-          cd repo
-          branch="test/e2e-commit-push-identity-${{ github.run_id }}"
-          if git ls-remote --exit-code --heads origin "${branch}" >/dev/null 2>&1; then
-            git push origin --delete "${branch}"
-          fi
 
   reset-target-branch-to-base:
     name: Reset target branch to base branch
