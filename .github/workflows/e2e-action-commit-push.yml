@@ -519,10 +519,13 @@ jobs:
         id: gpg
         run: |
           set -euo pipefail
+          gpg_batch_file="${RUNNER_TEMP}/gpg-batch"
+          gpg_private_file="${RUNNER_TEMP}/gpg-private.asc"
+          gpg_public_file="${RUNNER_TEMP}/gpg-public.asc"
           export GNUPGHOME
           GNUPGHOME="$(mktemp -d)"
           chmod 700 "${GNUPGHOME}"
-          cat > gpg-batch <<EOF
+          cat > "${gpg_batch_file}" <<EOF
           Key-Type: RSA
           Key-Length: 2048
           Name-Real: Triglav E2E
@@ -531,32 +534,54 @@ jobs:
           Expire-Date: 0
           %commit
           EOF
-          gpg --batch --generate-key gpg-batch
-          gpg --batch --pinentry-mode loopback --passphrase triglav-passphrase --armor --export-secret-keys "${{ github.actor }}@users.noreply.github.com" > gpg-private.asc
-          gpg --armor --export "${{ github.actor }}@users.noreply.github.com" > gpg-public.asc
+          gpg --batch --generate-key "${gpg_batch_file}"
+          gpg --batch --pinentry-mode loopback --passphrase triglav-passphrase --armor --export-secret-keys "${{ github.actor }}@users.noreply.github.com" > "${gpg_private_file}"
+          gpg --armor --export "${{ github.actor }}@users.noreply.github.com" > "${gpg_public_file}"
           {
             echo "secret_key<<EOF"
-            cat gpg-private.asc
+            cat "${gpg_private_file}"
             echo "EOF"
             echo "public_key<<EOF"
-            cat gpg-public.asc
+            cat "${gpg_public_file}"
             echo "EOF"
           } >> "${GITHUB_OUTPUT}"
 
       - name: Create test file
         run: echo "E2E gpg signing test $(date -u)" > e2e-gpg-signing.md
 
+      - name: Build action image from source
+        if: ${{ inputs.mode == 'ref' }}
+        run: |
+          set -euo pipefail
+          action_src="${RUNNER_TEMP}/action-commit-push-src"
+          rm -rf "${action_src}"
+          git clone --depth 1 --branch master https://github.com/devops-infra/action-commit-push "${action_src}"
+          docker build -t triglav-action-commit-push:test "${action_src}"
+
       - name: Commit and push signed changes with GPG
         if: ${{ inputs.mode == 'ref' }}
-        id: gpg_commit
-        uses: devops-infra/action-commit-push@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          commit_message: "test(commit-push): gpg signed commit"
-          target_branch: test/e2e-commit-push-gpg-${{ github.run_id }}
-          signing_mode: gpg
-          signing_key: ${{ steps.gpg.outputs.secret_key }}
-          signing_passphrase: triglav-passphrase
+        env:
+          INPUT_SIGNING_KEY: ${{ steps.gpg.outputs.secret_key }}
+          INPUT_SIGNING_PASSPHRASE: triglav-passphrase
+        run: |
+          set -euo pipefail
+          rm -f "${RUNNER_TEMP}/gpg-action-output.txt"
+          docker run --rm \
+            -v "$PWD:/github/workspace" \
+            -v "${RUNNER_TEMP}:/github/runner_temp" \
+            -w /github/workspace \
+            -e GITHUB_WORKSPACE=/github/workspace \
+            -e GITHUB_ACTOR="${{ github.actor }}" \
+            -e GITHUB_REPOSITORY="${{ github.repository }}" \
+            -e GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}" \
+            -e GITHUB_OUTPUT=/github/runner_temp/gpg-action-output.txt \
+            -e INPUT_ORGANIZATION_DOMAIN=github.com \
+            -e INPUT_COMMIT_MESSAGE="test(commit-push): gpg signed commit" \
+            -e INPUT_TARGET_BRANCH="test/e2e-commit-push-gpg-${{ github.run_id }}" \
+            -e INPUT_SIGNING_MODE=gpg \
+            -e INPUT_SIGNING_KEY \
+            -e INPUT_SIGNING_PASSPHRASE \
+            triglav-action-commit-push:test
 
       - name: GPG signing via docker image (preview)
         if: ${{ inputs.mode == 'image' }}
@@ -572,11 +597,12 @@ jobs:
         if: ${{ inputs.mode == 'ref' }}
         run: |
           set -euo pipefail
+          gpg_public_file="${RUNNER_TEMP}/gpg-public-verify.asc"
           export GNUPGHOME
           GNUPGHOME="$(mktemp -d)"
           chmod 700 "${GNUPGHOME}"
-          printf '%s\n' "${{ steps.gpg.outputs.public_key }}" > gpg-public.asc
-          gpg --import gpg-public.asc >/dev/null 2>&1
+          printf '%s\n' "${{ steps.gpg.outputs.public_key }}" > "${gpg_public_file}"
+          gpg --import "${gpg_public_file}" >/dev/null 2>&1
           git fetch origin "test/e2e-commit-push-gpg-${{ github.run_id }}"
           git verify-commit "origin/test/e2e-commit-push-gpg-${{ github.run_id }}"
 
@@ -603,29 +629,53 @@ jobs:
         id: ssh
         run: |
           set -euo pipefail
-          ssh-keygen -q -t ed25519 -N '' -C "${{ github.actor }}@users.noreply.github.com" -f ssh-signing-key
+          ssh_private_key="${RUNNER_TEMP}/ssh-signing-key"
+          ssh_public_key="${RUNNER_TEMP}/ssh-signing-key.pub"
+          rm -f "${ssh_private_key}" "${ssh_public_key}"
+          ssh-keygen -q -t ed25519 -N '' -C "${{ github.actor }}@users.noreply.github.com" -f "${ssh_private_key}"
           {
             echo "private_key<<EOF"
-            cat ssh-signing-key
+            cat "${ssh_private_key}"
             echo "EOF"
             echo "public_key<<EOF"
-            cat ssh-signing-key.pub
+            cat "${ssh_public_key}"
             echo "EOF"
           } >> "${GITHUB_OUTPUT}"
 
       - name: Create test file
         run: echo "E2E ssh signing test $(date -u)" > e2e-ssh-signing.md
 
+      - name: Build action image from source
+        if: ${{ inputs.mode == 'ref' }}
+        run: |
+          set -euo pipefail
+          action_src="${RUNNER_TEMP}/action-commit-push-src"
+          rm -rf "${action_src}"
+          git clone --depth 1 --branch master https://github.com/devops-infra/action-commit-push "${action_src}"
+          docker build -t triglav-action-commit-push:test "${action_src}"
+
       - name: Commit and push signed changes with SSH
         if: ${{ inputs.mode == 'ref' }}
-        id: ssh_commit
-        uses: devops-infra/action-commit-push@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          commit_message: "test(commit-push): ssh signed commit"
-          target_branch: test/e2e-commit-push-ssh-${{ github.run_id }}
-          signing_mode: ssh
-          signing_key: ${{ steps.ssh.outputs.private_key }}
+        env:
+          INPUT_SIGNING_KEY: ${{ steps.ssh.outputs.private_key }}
+        run: |
+          set -euo pipefail
+          rm -f "${RUNNER_TEMP}/ssh-action-output.txt"
+          docker run --rm \
+            -v "$PWD:/github/workspace" \
+            -v "${RUNNER_TEMP}:/github/runner_temp" \
+            -w /github/workspace \
+            -e GITHUB_WORKSPACE=/github/workspace \
+            -e GITHUB_ACTOR="${{ github.actor }}" \
+            -e GITHUB_REPOSITORY="${{ github.repository }}" \
+            -e GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}" \
+            -e GITHUB_OUTPUT=/github/runner_temp/ssh-action-output.txt \
+            -e INPUT_ORGANIZATION_DOMAIN=github.com \
+            -e INPUT_COMMIT_MESSAGE="test(commit-push): ssh signed commit" \
+            -e INPUT_TARGET_BRANCH="test/e2e-commit-push-ssh-${{ github.run_id }}" \
+            -e INPUT_SIGNING_MODE=ssh \
+            -e INPUT_SIGNING_KEY \
+            triglav-action-commit-push:test
 
       - name: SSH signing via docker image (preview)
         if: ${{ inputs.mode == 'image' }}
@@ -641,9 +691,10 @@ jobs:
         if: ${{ inputs.mode == 'ref' }}
         run: |
           set -euo pipefail
-          printf '%s %s\n' "${{ github.actor }}@users.noreply.github.com" "${{ steps.ssh.outputs.public_key }}" > allowed_signers
+          allowed_signers_file="${RUNNER_TEMP}/allowed_signers"
+          printf '%s %s\n' "${{ github.actor }}@users.noreply.github.com" "${{ steps.ssh.outputs.public_key }}" > "${allowed_signers_file}"
           git config gpg.format ssh
-          git config gpg.ssh.allowedSignersFile "$PWD/allowed_signers"
+          git config gpg.ssh.allowedSignersFile "${allowed_signers_file}"
           git fetch origin "test/e2e-commit-push-ssh-${{ github.run_id }}"
           git verify-commit "origin/test/e2e-commit-push-ssh-${{ github.run_id }}"
 
