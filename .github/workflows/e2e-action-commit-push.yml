@@ -296,6 +296,57 @@ jobs:
             git push origin --delete "${branch}"
           fi
 
+  commit-with-custom-identity:
+    name: Commit with custom user_name and user_email
+    needs: [preflight]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Create test file
+        run: echo "E2E identity override test $(date -u)" > e2e-identity-override.md
+
+      - name: Commit with custom identity
+        if: ${{ inputs.mode == 'ref' }}
+        id: commit
+        uses: devops-infra/action-commit-push@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          commit_message: "test(commit-push): custom identity test"
+          target_branch: test/e2e-commit-push-identity-${{ github.run_id }}
+          user_name: "Release Automation"
+          user_email: "release-bot@example.com"
+
+      - name: Commit via docker image (preview)
+        if: ${{ inputs.mode == 'image' }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          echo "Image mode placeholder for devopsinfra/action-commit-push:${{ inputs.image_tag }}"
+          echo "Use ref mode for authoritative validation until image-mode harness is finalized."
+
+      - name: Verify commit identity
+        if: ${{ inputs.mode == 'ref' }}
+        run: |
+          git fetch origin "test/e2e-commit-push-identity-${{ github.run_id }}"
+          test "$(git log -1 --format=%an "origin/test/e2e-commit-push-identity-${{ github.run_id }}")" = "Release Automation"
+          test "$(git log -1 --format=%ae "origin/test/e2e-commit-push-identity-${{ github.run_id }}")" = "release-bot@example.com"
+          test "$(git log -1 --format=%cn "origin/test/e2e-commit-push-identity-${{ github.run_id }}")" = "Release Automation"
+          test "$(git log -1 --format=%ce "origin/test/e2e-commit-push-identity-${{ github.run_id }}")" = "release-bot@example.com"
+
+      - name: Cleanup - delete test branch
+        if: ${{ always() && inputs.mode == 'ref' }}
+        run: |
+          branch="test/e2e-commit-push-identity-${{ github.run_id }}"
+          if git ls-remote --exit-code --heads origin "${branch}" >/dev/null 2>&1; then
+            git push origin --delete "${branch}"
+          fi
+
   reset-target-branch-to-base:
     name: Reset target branch to base branch
     needs: [preflight]
