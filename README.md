@@ -22,16 +22,16 @@ In Slavic mythology, Triglav represents three realms. That maps well to this fra
 
 ## Covered Actions and Test Types
 
-| Action                                         | Workflow                                                    | Test Coverage                                                                                                                   |
-|------------------------------------------------|-------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
-| `devops-infra/action-commit-push`              | `.github/workflows/e2e-action-commit-push.yml`              | branch creation/push, custom message/prefix, empty commit mode, amend with force-with-lease, output verification, cleanup       |
-| `devops-infra/action-pull-request`             | `.github/workflows/e2e-action-pull-request.yml`             | PR creation/update paths, custom title/body, draft + `get_diff`, `repository` + `repository_path`, output verification, cleanup |
-| `devops-infra/action-format-hcl`               | `.github/workflows/e2e-action-format-hcl.yml`               | check mode pass/fail, write mode, list/diff mode, malformed input detection                                                     |
-| `devops-infra/action-container-structure-test` | `.github/workflows/e2e-action-container-structure-test.yml` | text/json/junit output modes, report file creation, multi-config execution, output counters                                     |
-| `devops-infra/action-terraform-copy-vars`      | `.github/workflows/e2e-action-terraform-copy-vars.yml`      | variable propagation across modules, custom path inputs, strict missing-variable failure mode                                   |
-| `devops-infra/action-terraform-validate`       | `.github/workflows/e2e-action-terraform-validate.yml`       | valid module validation, scoped validation via `dir_filter`                                                                     |
-| `devops-infra/action-tflint`                   | `.github/workflows/e2e-action-tflint.yml`                   | lint execution across modules, scoped lint via `dir_filter`, non-blocking findings mode                                         |
-| `devops-infra/template-action`                 | `.github/workflows/e2e-action-template-action.yml`          | baseline template behavior validation, output contract checks, debug-mode execution                                             |
+| Action                                         | Workflow                                                    | Test Coverage                                                                                                                                         |
+|------------------------------------------------|-------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `devops-infra/action-commit-push`              | `.github/workflows/e2e-action-commit-push.yml`              | branch creation/push, custom message/prefix, empty commit mode, amend with force-with-lease, GPG and SSH signed commits, output verification, cleanup |
+| `devops-infra/action-pull-request`             | `.github/workflows/e2e-action-pull-request.yml`             | PR creation/update paths, custom title/body, draft + `get_diff`, `repository` + `repository_path`, output verification, cleanup                       |
+| `devops-infra/action-format-hcl`               | `.github/workflows/e2e-action-format-hcl.yml`               | check mode pass/fail, write mode, list/diff mode, malformed input detection                                                                           |
+| `devops-infra/action-container-structure-test` | `.github/workflows/e2e-action-container-structure-test.yml` | text/json/junit output modes, report file creation, multi-config execution, output counters                                                           |
+| `devops-infra/action-terraform-copy-vars`      | `.github/workflows/e2e-action-terraform-copy-vars.yml`      | variable propagation across modules, custom path inputs, strict missing-variable failure mode                                                         |
+| `devops-infra/action-terraform-validate`       | `.github/workflows/e2e-action-terraform-validate.yml`       | valid module validation, scoped validation via `dir_filter`                                                                                           |
+| `devops-infra/action-tflint`                   | `.github/workflows/e2e-action-tflint.yml`                   | lint execution across modules, scoped lint via `dir_filter`, non-blocking findings mode                                                               |
+| `devops-infra/template-action`                 | `.github/workflows/e2e-action-template-action.yml`          | baseline template behavior validation, output contract checks, debug-mode execution                                                                   |
 
 ## Workflow Orchestration
 
@@ -155,4 +155,5 @@ jobs:
 ## Notes
 
 - E2E workflows intentionally create temporary test branches and pull requests and then clean them up.
+- The `action-commit-push` E2E workflow generates ephemeral GPG and SSH keys during the run and verifies the resulting commit signatures against the matching public keys.
 - Use this repository to validate behavior before promoting changes in action repositories or reusable org workflows.
