@@ -1,4 +1,4 @@
-name: (E2E) Template Action
+name: (T) Template Action
 
 on:
   workflow_call:

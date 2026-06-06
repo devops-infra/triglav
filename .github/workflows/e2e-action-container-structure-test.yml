@@ -1,4 +1,4 @@
-name: (E2E) Action Container Structure Test
+name: (T) Action Container Structure Test
 
 on:
   workflow_call:

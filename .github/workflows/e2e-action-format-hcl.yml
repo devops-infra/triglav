@@ -1,4 +1,4 @@
-name: (E2E) Action Format HCL
+name: (T) Action Format HCL
 
 on:
   workflow_call:
