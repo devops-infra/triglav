@@ -355,11 +355,12 @@ jobs:
         run: |
           sudo chown -R "$(id -u):$(id -g)" repo
           cd repo
-          git fetch origin "test/e2e-commit-push-identity-${{ github.run_id }}"
-          test "$(git log -1 --format=%an "origin/test/e2e-commit-push-identity-${{ github.run_id }}")" = "Release Automation"
-          test "$(git log -1 --format=%ae "origin/test/e2e-commit-push-identity-${{ github.run_id }}")" = "release-bot@example.com"
-          test "$(git log -1 --format=%cn "origin/test/e2e-commit-push-identity-${{ github.run_id }}")" = "Release Automation"
-          test "$(git log -1 --format=%ce "origin/test/e2e-commit-push-identity-${{ github.run_id }}")" = "release-bot@example.com"
+          branch="test/e2e-commit-push-identity-${{ github.run_id }}"
+          git fetch origin "${branch}"
+          test "$(git log -1 --format=%an FETCH_HEAD)" = "Release Automation"
+          test "$(git log -1 --format=%ae FETCH_HEAD)" = "release-bot@example.com"
+          test "$(git log -1 --format=%cn FETCH_HEAD)" = "Release Automation"
+          test "$(git log -1 --format=%ce FETCH_HEAD)" = "release-bot@example.com"
 
       - name: Cleanup - delete test branch
         if: ${{ always() && inputs.mode == 'ref' }}
