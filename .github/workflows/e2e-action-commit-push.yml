@@ -503,3 +503,154 @@ jobs:
           if git ls-remote --exit-code --heads origin "${branch}" >/dev/null 2>&1; then
             git push origin --delete "${branch}"
           fi
+
+  gpg-signed-commit:
+    name: GPG-signed commit
+    needs: [preflight]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Generate GPG signing material
+        if: ${{ inputs.mode == 'ref' }}
+        id: gpg
+        run: |
+          set -euo pipefail
+          export GNUPGHOME
+          GNUPGHOME="$(mktemp -d)"
+          chmod 700 "${GNUPGHOME}"
+          cat > gpg-batch <<EOF
+          Key-Type: RSA
+          Key-Length: 2048
+          Name-Real: Triglav E2E
+          Name-Email: ${{ github.actor }}@users.noreply.github.com
+          Passphrase: triglav-passphrase
+          Expire-Date: 0
+          %commit
+          EOF
+          gpg --batch --generate-key gpg-batch
+          gpg --batch --pinentry-mode loopback --passphrase triglav-passphrase --armor --export-secret-keys "${{ github.actor }}@users.noreply.github.com" > gpg-private.asc
+          gpg --armor --export "${{ github.actor }}@users.noreply.github.com" > gpg-public.asc
+          {
+            echo "secret_key<<EOF"
+            cat gpg-private.asc
+            echo "EOF"
+            echo "public_key<<EOF"
+            cat gpg-public.asc
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Create test file
+        run: echo "E2E gpg signing test $(date -u)" > e2e-gpg-signing.md
+
+      - name: Commit and push signed changes with GPG
+        if: ${{ inputs.mode == 'ref' }}
+        id: gpg_commit
+        uses: devops-infra/action-commit-push@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          commit_message: "test(commit-push): gpg signed commit"
+          target_branch: test/e2e-commit-push-gpg-${{ github.run_id }}
+          signing_mode: gpg
+          signing_key: ${{ steps.gpg.outputs.secret_key }}
+          signing_passphrase: triglav-passphrase
+
+      - name: GPG signing via docker image (preview)
+        if: ${{ inputs.mode == 'image' }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          echo "Image mode placeholder for devopsinfra/action-commit-push:${{ inputs.image_tag }}"
+          echo "Use ref mode for authoritative validation until image-mode harness is finalized."
+
+      - name: Verify GPG commit signature
+        if: ${{ inputs.mode == 'ref' }}
+        run: |
+          set -euo pipefail
+          export GNUPGHOME
+          GNUPGHOME="$(mktemp -d)"
+          chmod 700 "${GNUPGHOME}"
+          printf '%s\n' "${{ steps.gpg.outputs.public_key }}" > gpg-public.asc
+          gpg --import gpg-public.asc >/dev/null 2>&1
+          git fetch origin "test/e2e-commit-push-gpg-${{ github.run_id }}"
+          git verify-commit "origin/test/e2e-commit-push-gpg-${{ github.run_id }}"
+
+      - name: Cleanup - delete test branch
+        if: ${{ always() && inputs.mode == 'ref' }}
+        run: |
+          branch="test/e2e-commit-push-gpg-${{ github.run_id }}"
+          if git ls-remote --exit-code --heads origin "${branch}" >/dev/null 2>&1; then
+            git push origin --delete "${branch}"
+          fi
+
+  ssh-signed-commit:
+    name: SSH-signed commit
+    needs: [preflight]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Generate SSH signing material
+        if: ${{ inputs.mode == 'ref' }}
+        id: ssh
+        run: |
+          set -euo pipefail
+          ssh-keygen -q -t ed25519 -N '' -C "${{ github.actor }}@users.noreply.github.com" -f ssh-signing-key
+          {
+            echo "private_key<<EOF"
+            cat ssh-signing-key
+            echo "EOF"
+            echo "public_key<<EOF"
+            cat ssh-signing-key.pub
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Create test file
+        run: echo "E2E ssh signing test $(date -u)" > e2e-ssh-signing.md
+
+      - name: Commit and push signed changes with SSH
+        if: ${{ inputs.mode == 'ref' }}
+        id: ssh_commit
+        uses: devops-infra/action-commit-push@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          commit_message: "test(commit-push): ssh signed commit"
+          target_branch: test/e2e-commit-push-ssh-${{ github.run_id }}
+          signing_mode: ssh
+          signing_key: ${{ steps.ssh.outputs.private_key }}
+
+      - name: SSH signing via docker image (preview)
+        if: ${{ inputs.mode == 'image' }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          echo "Image mode placeholder for devopsinfra/action-commit-push:${{ inputs.image_tag }}"
+          echo "Use ref mode for authoritative validation until image-mode harness is finalized."
+
+      - name: Verify SSH commit signature
+        if: ${{ inputs.mode == 'ref' }}
+        run: |
+          set -euo pipefail
+          printf '%s %s\n' "${{ github.actor }}@users.noreply.github.com" "${{ steps.ssh.outputs.public_key }}" > allowed_signers
+          git config gpg.format ssh
+          git config gpg.ssh.allowedSignersFile "$PWD/allowed_signers"
+          git fetch origin "test/e2e-commit-push-ssh-${{ github.run_id }}"
+          git verify-commit "origin/test/e2e-commit-push-ssh-${{ github.run_id }}"
+
+      - name: Cleanup - delete test branch
+        if: ${{ always() && inputs.mode == 'ref' }}
+        run: |
+          branch="test/e2e-commit-push-ssh-${{ github.run_id }}"
+          if git ls-remote --exit-code --heads origin "${branch}" >/dev/null 2>&1; then
+            git push origin --delete "${branch}"
+          fi
