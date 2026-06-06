@@ -13,6 +13,11 @@ on:
         required: false
         type: string
         default: v1
+      action_ref:
+        description: Git ref of devops-infra/action-commit-push used for ref-mode validation
+        required: false
+        type: string
+        default: master
   workflow_dispatch:
     inputs:
       mode:
@@ -27,6 +32,11 @@ on:
         description: Image tag for docker mode (for example v1.2.3-test or v1.2.3-rc)
         required: false
         default: v1
+        type: string
+      action_ref:
+        description: Git ref of devops-infra/action-commit-push used for ref-mode validation
+        required: false
+        default: master
         type: string
 
 permissions:
@@ -305,18 +315,28 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          path: repo
+
+      - name: Checkout action source for ref-mode validation
+        if: ${{ inputs.mode == 'ref' }}
+        uses: actions/checkout@v6
+        with:
+          repository: devops-infra/action-commit-push
+          ref: ${{ inputs.action_ref }}
+          path: action-src
 
       - name: Create test file
-        run: echo "E2E identity override test $(date -u)" > e2e-identity-override.md
+        run: echo "E2E identity override test $(date -u)" > repo/e2e-identity-override.md
 
       - name: Commit with custom identity
         if: ${{ inputs.mode == 'ref' }}
         id: commit
-        uses: devops-infra/action-commit-push@master
+        uses: ./action-src
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           commit_message: "test(commit-push): custom identity test"
           target_branch: test/e2e-commit-push-identity-${{ github.run_id }}
+          repository_path: repo
           user_name: "Release Automation"
           user_email: "release-bot@example.com"
 
@@ -333,6 +353,8 @@ jobs:
       - name: Verify commit identity
         if: ${{ inputs.mode == 'ref' }}
         run: |
+          sudo chown -R "$(id -u):$(id -g)" repo
+          cd repo
           git fetch origin "test/e2e-commit-push-identity-${{ github.run_id }}"
           test "$(git log -1 --format=%an "origin/test/e2e-commit-push-identity-${{ github.run_id }}")" = "Release Automation"
           test "$(git log -1 --format=%ae "origin/test/e2e-commit-push-identity-${{ github.run_id }}")" = "release-bot@example.com"
@@ -342,6 +364,8 @@ jobs:
       - name: Cleanup - delete test branch
         if: ${{ always() && inputs.mode == 'ref' }}
         run: |
+          sudo chown -R "$(id -u):$(id -g)" repo || true
+          cd repo
           branch="test/e2e-commit-push-identity-${{ github.run_id }}"
           if git ls-remote --exit-code --heads origin "${branch}" >/dev/null 2>&1; then
             git push origin --delete "${branch}"
