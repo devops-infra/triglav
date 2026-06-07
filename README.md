@@ -25,7 +25,7 @@ In Slavic mythology, Triglav represents three realms. That maps well to this fra
 | Action                                         | Workflow                                                    | Test Coverage                                                                                                                                                                   |
 |------------------------------------------------|-------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `devops-infra/action-commit-push`              | `.github/workflows/e2e-action-commit-push.yml`              | branch creation/push, custom message/prefix, custom commit name/email, empty commit mode, amend with force-with-lease, GPG and SSH signed commits, output verification, cleanup |
-| `devops-infra/action-pull-request`             | `.github/workflows/e2e-action-pull-request.yml`             | PR creation/update paths, custom title/body, draft + `get_diff`, `repository` + `repository_path`, output verification, cleanup                                                 |
+| `devops-infra/action-pull-request`             | `.github/workflows/e2e-action-pull-request.yml`             | PR creation/update paths, custom title/body, project assignment, draft + `get_diff`, `repository` + `repository_path`, output verification, cleanup                             |
 | `devops-infra/action-format-hcl`               | `.github/workflows/e2e-action-format-hcl.yml`               | check mode pass/fail, write mode, list/diff mode, malformed input detection                                                                                                     |
 | `devops-infra/action-container-structure-test` | `.github/workflows/e2e-action-container-structure-test.yml` | text/json/junit output modes, report file creation, multi-config execution, output counters                                                                                     |
 | `devops-infra/action-terraform-copy-vars`      | `.github/workflows/e2e-action-terraform-copy-vars.yml`      | variable propagation across modules, custom path inputs, strict missing-variable failure mode                                                                                   |
@@ -92,6 +92,11 @@ task e2e:run WORKFLOW=e2e-action-tflint.yml MODE=image IMAGE_TAG=v1.2.3-test
 
 This repository primarily relies on the built-in `${{ secrets.GITHUB_TOKEN }}` in workflow runs.
 If future scenarios require elevated credentials, define additional secrets in repository settings and document them in the specific workflow file.
+
+`e2e-action-pull-request.yml` now has an optional project-assignment scenario.
+Enable it by setting:
+- secret `GH_PROJECT_TOKEN` with GitHub project access for `gh`
+- variable `E2E_ACTION_PULL_REQUEST_PROJECT` with the target project title
 
 ## Input Coverage Gate
 

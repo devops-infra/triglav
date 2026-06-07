@@ -266,6 +266,139 @@ jobs:
           fi
           git push origin --delete test/e2e-pr-custom-${{ github.run_id }} 2>/dev/null || true
 
+  pull-request-with-project:
+    name: Pull request with project assignment
+    needs: [preflight]
+    if: ${{ vars.E2E_ACTION_PULL_REQUEST_PROJECT != '' }}
+    runs-on: ubuntu-latest
+    env:
+      GH_PROJECT_TOKEN: ${{ secrets.GH_PROJECT_TOKEN }}
+      PROJECT_TITLE: ${{ vars.E2E_ACTION_PULL_REQUEST_PROJECT }}
+    steps:
+      - name: Skip when project token is not configured
+        if: ${{ env.GH_PROJECT_TOKEN == '' }}
+        run: echo "Skipping project assignment E2E because GH_PROJECT_TOKEN is not configured."
+
+      - name: Checkout repository
+        if: ${{ env.GH_PROJECT_TOKEN != '' }}
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Create test branch with a commit
+        if: ${{ env.GH_PROJECT_TOKEN != '' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b test/e2e-pr-project-${{ github.run_id }}
+          echo "E2E PR project test $(date -u)" > e2e-pr-project-test.txt
+          git add -f e2e-pr-project-test.txt
+          git commit -m "test(pull-request): project assignment PR test"
+          git push origin test/e2e-pr-project-${{ github.run_id }}
+
+      - name: Checkout action under test
+        if: ${{ env.GH_PROJECT_TOKEN != '' && inputs.mode == 'ref' }}
+        uses: actions/checkout@v6
+        with:
+          repository: devops-infra/action-pull-request
+          ref: ${{ inputs.action_ref }}
+          path: .tmp/action-pull-request
+
+      - name: Create pull request with project assignment
+        if: ${{ env.GH_PROJECT_TOKEN != '' && inputs.mode == 'ref' }}
+        id: pr
+        uses: ./.tmp/action-pull-request
+        with:
+          github_token: ${{ env.GH_PROJECT_TOKEN }}
+          title: "test(pull-request): project assignment test - safe to close"
+          body: "Automated end-to-end test for project assignment."
+          target_branch: master
+          project: ${{ env.PROJECT_TITLE }}
+
+      - name: Create pull request via docker image
+        if: ${{ env.GH_PROJECT_TOKEN != '' && inputs.mode == 'image' }}
+        env:
+          ACTION_IMAGE: devopsinfra/action-pull-request:${{ inputs.image_tag }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          mkdir -p .tmp
+          : > .tmp/e2e-pr-project.outputs
+          docker pull "${ACTION_IMAGE}"
+          docker run --rm \
+            -e GITHUB_TOKEN="${GH_PROJECT_TOKEN}" \
+            -e GITHUB_REPOSITORY="${{ github.repository }}" \
+            -e GITHUB_WORKSPACE=/github/workspace \
+            -e GITHUB_ACTOR="${{ github.actor }}" \
+            -e GITHUB_OUTPUT=/github/workspace/.tmp/e2e-pr-project.outputs \
+            -e INPUT_GITHUB_TOKEN="${GH_PROJECT_TOKEN}" \
+            -e INPUT_SOURCE_BRANCH="test/e2e-pr-project-${{ github.run_id }}" \
+            -e INPUT_TITLE="test(pull-request): project assignment test - safe to close" \
+            -e INPUT_BODY="Automated end-to-end test for project assignment." \
+            -e INPUT_TARGET_BRANCH=master \
+            -e INPUT_PROJECT="${PROJECT_TITLE}" \
+            -v "$PWD:/github/workspace" \
+            -w /github/workspace \
+            "${ACTION_IMAGE}"
+
+      - name: Verify outputs
+        if: ${{ env.GH_PROJECT_TOKEN != '' && inputs.mode == 'ref' }}
+        run: |
+          echo "url=${{ steps.pr.outputs.url }}"
+          echo "pr_number=${{ steps.pr.outputs.pr_number }}"
+          test -n "${{ steps.pr.outputs.url }}"
+          test -n "${{ steps.pr.outputs.pr_number }}"
+
+      - name: Verify outputs from docker image
+        if: ${{ env.GH_PROJECT_TOKEN != '' && inputs.mode == 'image' }}
+        run: |
+          URL="$(sed -n 's/^url=//p' .tmp/e2e-pr-project.outputs | tail -1)"
+          PR_NUMBER="$(sed -n 's/^pr_number=//p' .tmp/e2e-pr-project.outputs | tail -1)"
+          echo "url=${URL}"
+          echo "pr_number=${PR_NUMBER}"
+          test -n "${URL}"
+          test -n "${PR_NUMBER}"
+
+      - name: Verify project assignment
+        if: ${{ env.GH_PROJECT_TOKEN != '' }}
+        env:
+          GH_TOKEN: ${{ env.GH_PROJECT_TOKEN }}
+        run: |
+          PR_NUMBER="${{ steps.pr.outputs.pr_number }}"
+          if [ -z "$PR_NUMBER" ] && [ -f .tmp/e2e-pr-project.outputs ]; then
+            PR_NUMBER="$(sed -n 's/^pr_number=//p' .tmp/e2e-pr-project.outputs | tail -1)"
+          fi
+          test -n "${PR_NUMBER}"
+
+          PROJECT_FOUND="$(
+            gh pr view "$PR_NUMBER" --repo "${{ github.repository }}" --json projectItems,projectCards \
+              | jq -r --arg title "${PROJECT_TITLE}" \
+                  '([.projectItems[]?.project.title?, .projectCards[]?.project.name?, .projectCards[]?.project.title?]
+                    | any(. == $title))'
+          )"
+
+          test "${PROJECT_FOUND}" = "true"
+
+      - name: Cleanup - remove project assignment, close PR, and delete test branch
+        if: ${{ always() }}
+        env:
+          GH_TOKEN: ${{ env.GH_PROJECT_TOKEN }}
+        run: |
+          if [ -z "${GH_TOKEN}" ]; then
+            exit 0
+          fi
+          PR_NUMBER="${{ steps.pr.outputs.pr_number }}"
+          if [ -z "$PR_NUMBER" ] && [ -f .tmp/e2e-pr-project.outputs ]; then
+            PR_NUMBER="$(sed -n 's/^pr_number=//p' .tmp/e2e-pr-project.outputs | tail -1)"
+          fi
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr edit "$PR_NUMBER" --repo "${{ github.repository }}" --remove-project "${PROJECT_TITLE}" 2>/dev/null || true
+            gh pr close "$PR_NUMBER" --repo "${{ github.repository }}" 2>/dev/null || true
+          fi
+          git push origin --delete test/e2e-pr-project-${{ github.run_id }} 2>/dev/null || true
+
   pull-request-with-repository-path:
     name: Pull request using custom checkout path and explicit repository
     needs: [preflight]
