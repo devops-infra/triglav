@@ -87,15 +87,27 @@ jobs:
           commit_message: "test(commit-push): basic commit test"
           target_branch: test/e2e-commit-push-basic-${{ github.run_id }}
 
-      - name: Commit and push via docker image (preview)
+      - name: Commit and push via docker image
         if: ${{ inputs.mode == 'image' }}
         run: |
           if [ -z "${{ inputs.image_tag }}" ]; then
             echo "image_tag is required when mode=image"
             exit 1
           fi
-          echo "Image mode placeholder for devopsinfra/action-commit-push:${{ inputs.image_tag }}"
-          echo "Use ref mode for authoritative validation until image-mode harness is finalized."
+          mkdir -p .tmp
+          : > .tmp/e2e-commit-push-basic.outputs
+          docker pull "devopsinfra/action-commit-push:${{ inputs.image_tag }}"
+          docker run --rm \
+            -e GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}" \
+            -e GITHUB_REPOSITORY="${{ github.repository }}" \
+            -e GITHUB_WORKSPACE=/github/workspace \
+            -e GITHUB_ACTOR="${{ github.actor }}" \
+            -e GITHUB_OUTPUT=/github/workspace/.tmp/e2e-commit-push-basic.outputs \
+            -e INPUT_COMMIT_MESSAGE="test(commit-push): basic commit test" \
+            -e INPUT_TARGET_BRANCH="test/e2e-commit-push-basic-${{ github.run_id }}" \
+            -v "$PWD:/github/workspace" \
+            -w /github/workspace \
+            "devopsinfra/action-commit-push:${{ inputs.image_tag }}"
 
       - name: Verify outputs
         if: ${{ inputs.mode == 'ref' }}
@@ -105,8 +117,26 @@ jobs:
           test -n "${{ steps.commit.outputs.branch_name }}"
           test -n "${{ steps.commit.outputs.files_changed }}"
 
+      - name: Verify outputs from docker image
+        if: ${{ inputs.mode == 'image' }}
+        run: |
+          branch_name="$(sed -n 's/^branch_name=//p' .tmp/e2e-commit-push-basic.outputs | tail -1)"
+          files_changed="$(awk '/^files_changed<<EOF$/{flag=1;next}/^EOF$/{flag=0}flag' .tmp/e2e-commit-push-basic.outputs)"
+          echo "branch_name=${branch_name}"
+          echo "files_changed=${files_changed}"
+          test -n "${branch_name}"
+          test -n "${files_changed}"
+
       - name: Cleanup - delete test branch
         if: ${{ always() && inputs.mode == 'ref' }}
+        run: |
+          branch="test/e2e-commit-push-basic-${{ github.run_id }}"
+          if git ls-remote --exit-code --heads origin "${branch}" >/dev/null 2>&1; then
+            git push origin --delete "${branch}"
+          fi
+
+      - name: Cleanup - delete test branch from docker image run
+        if: ${{ always() && inputs.mode == 'image' }}
         run: |
           branch="test/e2e-commit-push-basic-${{ github.run_id }}"
           if git ls-remote --exit-code --heads origin "${branch}" >/dev/null 2>&1; then
@@ -136,15 +166,28 @@ jobs:
           commit_message: "custom message test"
           target_branch: test/e2e-commit-push-prefix-${{ github.run_id }}
 
-      - name: Commit via docker image (preview)
+      - name: Commit via docker image
         if: ${{ inputs.mode == 'image' }}
         run: |
           if [ -z "${{ inputs.image_tag }}" ]; then
             echo "image_tag is required when mode=image"
             exit 1
           fi
-          echo "Image mode placeholder for devopsinfra/action-commit-push:${{ inputs.image_tag }}"
-          echo "Use ref mode for authoritative validation until image-mode harness is finalized."
+          mkdir -p .tmp
+          : > .tmp/e2e-commit-push-prefix.outputs
+          docker pull "devopsinfra/action-commit-push:${{ inputs.image_tag }}"
+          docker run --rm \
+            -e GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}" \
+            -e GITHUB_REPOSITORY="${{ github.repository }}" \
+            -e GITHUB_WORKSPACE=/github/workspace \
+            -e GITHUB_ACTOR="${{ github.actor }}" \
+            -e GITHUB_OUTPUT=/github/workspace/.tmp/e2e-commit-push-prefix.outputs \
+            -e INPUT_COMMIT_PREFIX="test(commit-push): " \
+            -e INPUT_COMMIT_MESSAGE="custom message test" \
+            -e INPUT_TARGET_BRANCH="test/e2e-commit-push-prefix-${{ github.run_id }}" \
+            -v "$PWD:/github/workspace" \
+            -w /github/workspace \
+            "devopsinfra/action-commit-push:${{ inputs.image_tag }}"
 
       - name: Verify outputs
         if: ${{ inputs.mode == 'ref' }}
@@ -154,8 +197,26 @@ jobs:
           test -n "${{ steps.commit.outputs.branch_name }}"
           test -n "${{ steps.commit.outputs.files_changed }}"
 
+      - name: Verify outputs from docker image
+        if: ${{ inputs.mode == 'image' }}
+        run: |
+          branch_name="$(sed -n 's/^branch_name=//p' .tmp/e2e-commit-push-prefix.outputs | tail -1)"
+          files_changed="$(awk '/^files_changed<<EOF$/{flag=1;next}/^EOF$/{flag=0}flag' .tmp/e2e-commit-push-prefix.outputs)"
+          echo "branch_name=${branch_name}"
+          echo "files_changed=${files_changed}"
+          test -n "${branch_name}"
+          test -n "${files_changed}"
+
       - name: Cleanup - delete test branch
         if: ${{ always() && inputs.mode == 'ref' }}
+        run: |
+          branch="test/e2e-commit-push-prefix-${{ github.run_id }}"
+          if git ls-remote --exit-code --heads origin "${branch}" >/dev/null 2>&1; then
+            git push origin --delete "${branch}"
+          fi
+
+      - name: Cleanup - delete test branch from docker image run
+        if: ${{ always() && inputs.mode == 'image' }}
         run: |
           branch="test/e2e-commit-push-prefix-${{ github.run_id }}"
           if git ls-remote --exit-code --heads origin "${branch}" >/dev/null 2>&1; then
@@ -182,15 +243,28 @@ jobs:
           commit_message: "test(commit-push): empty commit test"
           target_branch: test/e2e-commit-push-empty-${{ github.run_id }}
 
-      - name: Empty commit via docker image (preview)
+      - name: Empty commit via docker image
         if: ${{ inputs.mode == 'image' }}
         run: |
           if [ -z "${{ inputs.image_tag }}" ]; then
             echo "image_tag is required when mode=image"
             exit 1
           fi
-          echo "Image mode placeholder for devopsinfra/action-commit-push:${{ inputs.image_tag }}"
-          echo "Use ref mode for authoritative validation until image-mode harness is finalized."
+          mkdir -p .tmp
+          : > .tmp/e2e-commit-push-empty.outputs
+          docker pull "devopsinfra/action-commit-push:${{ inputs.image_tag }}"
+          docker run --rm \
+            -e GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}" \
+            -e GITHUB_REPOSITORY="${{ github.repository }}" \
+            -e GITHUB_WORKSPACE=/github/workspace \
+            -e GITHUB_ACTOR="${{ github.actor }}" \
+            -e GITHUB_OUTPUT=/github/workspace/.tmp/e2e-commit-push-empty.outputs \
+            -e INPUT_ALLOW_EMPTY_COMMIT=true \
+            -e INPUT_COMMIT_MESSAGE="test(commit-push): empty commit test" \
+            -e INPUT_TARGET_BRANCH="test/e2e-commit-push-empty-${{ github.run_id }}" \
+            -v "$PWD:/github/workspace" \
+            -w /github/workspace \
+            "devopsinfra/action-commit-push:${{ inputs.image_tag }}"
 
       - name: Verify branch output
         if: ${{ inputs.mode == 'ref' }}
@@ -198,8 +272,23 @@ jobs:
           echo "branch_name=${{ steps.commit.outputs.branch_name }}"
           test -n "${{ steps.commit.outputs.branch_name }}"
 
+      - name: Verify branch output from docker image
+        if: ${{ inputs.mode == 'image' }}
+        run: |
+          branch_name="$(sed -n 's/^branch_name=//p' .tmp/e2e-commit-push-empty.outputs | tail -1)"
+          echo "branch_name=${branch_name}"
+          test -n "${branch_name}"
+
       - name: Cleanup - delete test branch
         if: ${{ always() && inputs.mode == 'ref' }}
+        run: |
+          branch="test/e2e-commit-push-empty-${{ github.run_id }}"
+          if git ls-remote --exit-code --heads origin "${branch}" >/dev/null 2>&1; then
+            git push origin --delete "${branch}"
+          fi
+
+      - name: Cleanup - delete test branch from docker image run
+        if: ${{ always() && inputs.mode == 'image' }}
         run: |
           branch="test/e2e-commit-push-empty-${{ github.run_id }}"
           if git ls-remote --exit-code --heads origin "${branch}" >/dev/null 2>&1; then
@@ -229,15 +318,28 @@ jobs:
           commit_message: "test(commit-push): timestamp branch test"
           target_branch: test/e2e-commit-push-timestamp
 
-      - name: Commit via docker image (preview)
+      - name: Commit via docker image
         if: ${{ inputs.mode == 'image' }}
         run: |
           if [ -z "${{ inputs.image_tag }}" ]; then
             echo "image_tag is required when mode=image"
             exit 1
           fi
-          echo "Image mode placeholder for devopsinfra/action-commit-push:${{ inputs.image_tag }}"
-          echo "Use ref mode for authoritative validation until image-mode harness is finalized."
+          mkdir -p .tmp
+          : > .tmp/e2e-commit-push-timestamp.outputs
+          docker pull "devopsinfra/action-commit-push:${{ inputs.image_tag }}"
+          docker run --rm \
+            -e GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}" \
+            -e GITHUB_REPOSITORY="${{ github.repository }}" \
+            -e GITHUB_WORKSPACE=/github/workspace \
+            -e GITHUB_ACTOR="${{ github.actor }}" \
+            -e GITHUB_OUTPUT=/github/workspace/.tmp/e2e-commit-push-timestamp.outputs \
+            -e INPUT_ADD_TIMESTAMP=true \
+            -e INPUT_COMMIT_MESSAGE="test(commit-push): timestamp branch test" \
+            -e INPUT_TARGET_BRANCH="test/e2e-commit-push-timestamp" \
+            -v "$PWD:/github/workspace" \
+            -w /github/workspace \
+            "devopsinfra/action-commit-push:${{ inputs.image_tag }}"
 
       - name: Verify timestamped branch output
         if: ${{ inputs.mode == 'ref' }}
@@ -246,10 +348,25 @@ jobs:
           echo "branch_name=${branch_name}"
           [[ "${branch_name}" =~ ^test/e2e-commit-push-timestamp-[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}Z$ ]]
 
+      - name: Verify timestamped branch output from docker image
+        if: ${{ inputs.mode == 'image' }}
+        run: |
+          branch_name="$(sed -n 's/^branch_name=//p' .tmp/e2e-commit-push-timestamp.outputs | tail -1)"
+          echo "branch_name=${branch_name}"
+          [[ "${branch_name}" =~ ^test/e2e-commit-push-timestamp-[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}-[0-9]{2}-[0-9]{2}Z$ ]]
+
       - name: Cleanup - delete test branch
         if: ${{ always() && inputs.mode == 'ref' }}
         run: |
           branch_name="${{ steps.commit.outputs.branch_name }}"
+          if [ -n "${branch_name}" ] && git ls-remote --exit-code --heads origin "${branch_name}" >/dev/null 2>&1; then
+            git push origin --delete "${branch_name}"
+          fi
+
+      - name: Cleanup - delete test branch from docker image run
+        if: ${{ always() && inputs.mode == 'image' }}
+        run: |
+          branch_name="$(sed -n 's/^branch_name=//p' .tmp/e2e-commit-push-timestamp.outputs | tail -1)"
           if [ -n "${branch_name}" ] && git ls-remote --exit-code --heads origin "${branch_name}" >/dev/null 2>&1; then
             git push origin --delete "${branch_name}"
           fi
@@ -278,15 +395,28 @@ jobs:
           commit_message: "test(commit-push): repository path test"
           target_branch: test/e2e-commit-push-path-${{ github.run_id }}
 
-      - name: Commit via docker image (preview)
+      - name: Commit via docker image
         if: ${{ inputs.mode == 'image' }}
         run: |
           if [ -z "${{ inputs.image_tag }}" ]; then
             echo "image_tag is required when mode=image"
             exit 1
           fi
-          echo "Image mode placeholder for devopsinfra/action-commit-push:${{ inputs.image_tag }}"
-          echo "Use ref mode for authoritative validation until image-mode harness is finalized."
+          mkdir -p .tmp
+          : > .tmp/e2e-commit-push-path.outputs
+          docker pull "devopsinfra/action-commit-push:${{ inputs.image_tag }}"
+          docker run --rm \
+            -e GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}" \
+            -e GITHUB_REPOSITORY="${{ github.repository }}" \
+            -e GITHUB_WORKSPACE=/github/workspace \
+            -e GITHUB_ACTOR="${{ github.actor }}" \
+            -e GITHUB_OUTPUT=/github/workspace/.tmp/e2e-commit-push-path.outputs \
+            -e INPUT_REPOSITORY_PATH=repo \
+            -e INPUT_COMMIT_MESSAGE="test(commit-push): repository path test" \
+            -e INPUT_TARGET_BRANCH="test/e2e-commit-push-path-${{ github.run_id }}" \
+            -v "$PWD:/github/workspace" \
+            -w /github/workspace \
+            "devopsinfra/action-commit-push:${{ inputs.image_tag }}"
 
       - name: Verify repository_path output
         if: ${{ inputs.mode == 'ref' }}
@@ -297,8 +427,29 @@ jobs:
           ${{ steps.commit.outputs.files_changed }}
           EOF
 
+      - name: Verify repository_path output from docker image
+        if: ${{ inputs.mode == 'image' }}
+        run: |
+          branch_name="$(sed -n 's/^branch_name=//p' .tmp/e2e-commit-push-path.outputs | tail -1)"
+          files_changed="$(awk '/^files_changed<<EOF$/{flag=1;next}/^EOF$/{flag=0}flag' .tmp/e2e-commit-push-path.outputs)"
+          echo "branch_name=${branch_name}"
+          echo "files_changed=${files_changed}"
+          test -n "${branch_name}"
+          grep -Fq "e2e-repository-path.md" <<EOF
+          ${files_changed}
+          EOF
+
       - name: Cleanup - delete test branch
         if: ${{ always() && inputs.mode == 'ref' }}
+        run: |
+          cd repo
+          branch="test/e2e-commit-push-path-${{ github.run_id }}"
+          if git ls-remote --exit-code --heads origin "${branch}" >/dev/null 2>&1; then
+            git push origin --delete "${branch}"
+          fi
+
+      - name: Cleanup - delete test branch from docker image run
+        if: ${{ always() && inputs.mode == 'image' }}
         run: |
           cd repo
           branch="test/e2e-commit-push-path-${{ github.run_id }}"
@@ -320,7 +471,6 @@ jobs:
           path: action-src
 
       - name: Prepare local repository
-        if: ${{ inputs.mode == 'ref' }}
         run: |
           set -euo pipefail
           rm -rf "${RUNNER_TEMP}/identity-ws" "${RUNNER_TEMP}/identity-remote.git" "${RUNNER_TEMP}/identity-output.txt" "${RUNNER_TEMP}/identity-bin"
@@ -370,18 +520,33 @@ jobs:
             -e INPUT_USER_EMAIL="release-bot@example.com" \
             triglav-action-commit-push:test
 
-      - name: Commit via docker image (preview)
+      - name: Commit via docker image
         if: ${{ inputs.mode == 'image' }}
         run: |
           if [ -z "${{ inputs.image_tag }}" ]; then
             echo "image_tag is required when mode=image"
             exit 1
           fi
-          echo "Image mode placeholder for devopsinfra/action-commit-push:${{ inputs.image_tag }}"
-          echo "Use ref mode for authoritative validation until image-mode harness is finalized."
+          docker pull "devopsinfra/action-commit-push:${{ inputs.image_tag }}"
+          docker run --rm \
+            -v "${RUNNER_TEMP}:/github/workspace" \
+            -v "${RUNNER_TEMP}:/github/runner_temp" \
+            -w /github/workspace \
+            -e PATH="/github/workspace/identity-bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
+            -e GITHUB_WORKSPACE=/github/workspace/identity-ws \
+            -e GITHUB_ACTOR="${{ github.actor }}" \
+            -e GITHUB_REPOSITORY=owner/repo \
+            -e GITHUB_TOKEN=fake \
+            -e GITHUB_OUTPUT=/github/runner_temp/identity-output.txt \
+            -e INPUT_ORGANIZATION_DOMAIN=github.com \
+            -e INPUT_COMMIT_MESSAGE="test(commit-push): custom identity test" \
+            -e INPUT_REPOSITORY_PATH=. \
+            -e INPUT_USER_NAME="Release Automation" \
+            -e INPUT_USER_EMAIL="release-bot@example.com" \
+            "devopsinfra/action-commit-push:${{ inputs.image_tag }}"
 
       - name: Verify commit identity
-        if: ${{ inputs.mode == 'ref' }}
+        if: ${{ inputs.mode == 'ref' || inputs.mode == 'image' }}
         run: |
           sudo chown -R "$(id -u):$(id -g)" "${RUNNER_TEMP}/identity-ws"
           cd "${RUNNER_TEMP}/identity-ws"
@@ -402,7 +567,6 @@ jobs:
           fetch-depth: 0
 
       - name: Prepare base and target branches
-        if: ${{ inputs.mode == 'ref' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -433,15 +597,29 @@ jobs:
           reset_target_branch: "true"
           force_with_lease: "true"
 
-      - name: Reset via docker image (preview)
+      - name: Reset via docker image
         if: ${{ inputs.mode == 'image' }}
         run: |
           if [ -z "${{ inputs.image_tag }}" ]; then
             echo "image_tag is required when mode=image"
             exit 1
           fi
-          echo "Image mode placeholder for devopsinfra/action-commit-push:${{ inputs.image_tag }}"
-          echo "Use ref mode for authoritative validation until image-mode harness is finalized."
+          mkdir -p .tmp
+          : > .tmp/e2e-commit-push-reset.outputs
+          docker pull "devopsinfra/action-commit-push:${{ inputs.image_tag }}"
+          docker run --rm \
+            -e GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}" \
+            -e GITHUB_REPOSITORY="${{ github.repository }}" \
+            -e GITHUB_WORKSPACE=/github/workspace \
+            -e GITHUB_ACTOR="${{ github.actor }}" \
+            -e GITHUB_OUTPUT=/github/workspace/.tmp/e2e-commit-push-reset.outputs \
+            -e INPUT_TARGET_BRANCH="test/e2e-commit-push-reset-${{ github.run_id }}" \
+            -e INPUT_BASE_BRANCH="test/e2e-commit-push-base-${{ github.run_id }}" \
+            -e INPUT_RESET_TARGET_BRANCH=true \
+            -e INPUT_FORCE_WITH_LEASE=true \
+            -v "$PWD:/github/workspace" \
+            -w /github/workspace \
+            "devopsinfra/action-commit-push:${{ inputs.image_tag }}"
 
       - name: Verify branch reset effect
         if: ${{ inputs.mode == 'ref' }}
@@ -454,8 +632,32 @@ jobs:
             exit 1
           fi
 
+      - name: Verify branch reset effect from docker image
+        if: ${{ inputs.mode == 'image' }}
+        run: |
+          branch_name="$(sed -n 's/^branch_name=//p' .tmp/e2e-commit-push-reset.outputs | tail -1)"
+          test -n "${branch_name}"
+          git fetch origin test/e2e-commit-push-reset-${{ github.run_id }}
+          git show origin/test/e2e-commit-push-reset-${{ github.run_id }}:e2e-reset-base.md >/dev/null
+          if git show origin/test/e2e-commit-push-reset-${{ github.run_id }}:e2e-reset-legacy.md >/dev/null 2>&1; then
+            echo "Expected legacy file to be removed after reset_target_branch=true"
+            exit 1
+          fi
+
       - name: Cleanup - delete test branches
         if: ${{ always() && inputs.mode == 'ref' }}
+        run: |
+          for branch in \
+            test/e2e-commit-push-reset-${{ github.run_id }} \
+            test/e2e-commit-push-base-${{ github.run_id }}
+          do
+            if git ls-remote --exit-code --heads origin "${branch}" >/dev/null 2>&1; then
+              git push origin --delete "${branch}"
+            fi
+          done
+
+      - name: Cleanup - delete test branches from docker image run
+        if: ${{ always() && inputs.mode == 'image' }}
         run: |
           for branch in \
             test/e2e-commit-push-reset-${{ github.run_id }} \
@@ -477,7 +679,6 @@ jobs:
           fetch-depth: 0
 
       - name: Prepare conflicting branches
-        if: ${{ inputs.mode == 'ref' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -514,22 +715,50 @@ jobs:
           base_branch: test/e2e-commit-push-conflict-base-${{ github.run_id }}
           fail_on_rebase_conflict: "true"
 
-      - name: Conflict via docker image (preview)
+      - name: Conflict via docker image
         if: ${{ inputs.mode == 'image' }}
+        id: strict-image
+        continue-on-error: true
         run: |
           if [ -z "${{ inputs.image_tag }}" ]; then
             echo "image_tag is required when mode=image"
             exit 1
           fi
-          echo "Image mode placeholder for devopsinfra/action-commit-push:${{ inputs.image_tag }}"
-          echo "Use ref mode for authoritative validation until image-mode harness is finalized."
+          docker pull "devopsinfra/action-commit-push:${{ inputs.image_tag }}"
+          docker run --rm \
+            -e GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}" \
+            -e GITHUB_REPOSITORY="${{ github.repository }}" \
+            -e GITHUB_WORKSPACE=/github/workspace \
+            -e GITHUB_ACTOR="${{ github.actor }}" \
+            -e INPUT_TARGET_BRANCH="test/e2e-commit-push-conflict-target-${{ github.run_id }}" \
+            -e INPUT_BASE_BRANCH="test/e2e-commit-push-conflict-base-${{ github.run_id }}" \
+            -e INPUT_FAIL_ON_REBASE_CONFLICT=true \
+            -v "$PWD:/github/workspace" \
+            -w /github/workspace \
+            "devopsinfra/action-commit-push:${{ inputs.image_tag }}"
 
       - name: Verify strict mode failure
         if: ${{ inputs.mode == 'ref' }}
         run: test "${{ steps.strict.outcome }}" = "failure"
 
+      - name: Verify strict mode failure from docker image
+        if: ${{ inputs.mode == 'image' }}
+        run: test "${{ steps.strict-image.outcome }}" = "failure"
+
       - name: Cleanup - delete test branches
         if: ${{ always() && inputs.mode == 'ref' }}
+        run: |
+          for branch in \
+            test/e2e-commit-push-conflict-target-${{ github.run_id }} \
+            test/e2e-commit-push-conflict-base-${{ github.run_id }}
+          do
+            if git ls-remote --exit-code --heads origin "${branch}" >/dev/null 2>&1; then
+              git push origin --delete "${branch}"
+            fi
+          done
+
+      - name: Cleanup - delete test branches from docker image run
+        if: ${{ always() && inputs.mode == 'image' }}
         run: |
           for branch in \
             test/e2e-commit-push-conflict-target-${{ github.run_id }} \
@@ -551,7 +780,6 @@ jobs:
           fetch-depth: 0
 
       - name: Create initial branch with commit
-        if: ${{ inputs.mode == 'ref' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -562,7 +790,7 @@ jobs:
           git push origin test/e2e-commit-push-amend-${{ github.run_id }}
 
       - name: Add more content to file
-        if: ${{ inputs.mode == 'ref' }}
+        if: ${{ inputs.mode == 'ref' || inputs.mode == 'image' }}
         run: echo "v2" >> e2e-amend-test.md
 
       - name: Amend commit keeping original message
@@ -575,15 +803,28 @@ jobs:
           no_edit: "true"
           force_with_lease: "true"
 
-      - name: Amend via docker image (preview)
+      - name: Amend via docker image
         if: ${{ inputs.mode == 'image' }}
         run: |
           if [ -z "${{ inputs.image_tag }}" ]; then
             echo "image_tag is required when mode=image"
             exit 1
           fi
-          echo "Image mode placeholder for devopsinfra/action-commit-push:${{ inputs.image_tag }}"
-          echo "Use ref mode for authoritative validation until image-mode harness is finalized."
+          mkdir -p .tmp
+          : > .tmp/e2e-commit-push-amend.outputs
+          docker pull "devopsinfra/action-commit-push:${{ inputs.image_tag }}"
+          docker run --rm \
+            -e GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}" \
+            -e GITHUB_REPOSITORY="${{ github.repository }}" \
+            -e GITHUB_WORKSPACE=/github/workspace \
+            -e GITHUB_ACTOR="${{ github.actor }}" \
+            -e GITHUB_OUTPUT=/github/workspace/.tmp/e2e-commit-push-amend.outputs \
+            -e INPUT_AMEND=true \
+            -e INPUT_NO_EDIT=true \
+            -e INPUT_FORCE_WITH_LEASE=true \
+            -v "$PWD:/github/workspace" \
+            -w /github/workspace \
+            "devopsinfra/action-commit-push:${{ inputs.image_tag }}"
 
       - name: Verify branch output
         if: ${{ inputs.mode == 'ref' }}
@@ -591,8 +832,23 @@ jobs:
           echo "branch_name=${{ steps.amend.outputs.branch_name }}"
           test -n "${{ steps.amend.outputs.branch_name }}"
 
+      - name: Verify branch output from docker image
+        if: ${{ inputs.mode == 'image' }}
+        run: |
+          branch_name="$(sed -n 's/^branch_name=//p' .tmp/e2e-commit-push-amend.outputs | tail -1)"
+          echo "branch_name=${branch_name}"
+          test -n "${branch_name}"
+
       - name: Cleanup - delete test branch
         if: ${{ always() && inputs.mode == 'ref' }}
+        run: |
+          branch="test/e2e-commit-push-amend-${{ github.run_id }}"
+          if git ls-remote --exit-code --heads origin "${branch}" >/dev/null 2>&1; then
+            git push origin --delete "${branch}"
+          fi
+
+      - name: Cleanup - delete test branch from docker image run
+        if: ${{ always() && inputs.mode == 'image' }}
         run: |
           branch="test/e2e-commit-push-amend-${{ github.run_id }}"
           if git ls-remote --exit-code --heads origin "${branch}" >/dev/null 2>&1; then
@@ -610,7 +866,6 @@ jobs:
           fetch-depth: 0
 
       - name: Generate GPG signing material
-        if: ${{ inputs.mode == 'ref' }}
         id: gpg
         run: |
           set -euo pipefail
@@ -678,18 +933,36 @@ jobs:
             -e INPUT_SIGNING_PASSPHRASE \
             triglav-action-commit-push:test
 
-      - name: GPG signing via docker image (preview)
+      - name: GPG signing via docker image
         if: ${{ inputs.mode == 'image' }}
+        env:
+          INPUT_SIGNING_KEY: ${{ steps.gpg.outputs.secret_key }}
+          INPUT_SIGNING_PASSPHRASE: triglav-passphrase
         run: |
           if [ -z "${{ inputs.image_tag }}" ]; then
             echo "image_tag is required when mode=image"
             exit 1
           fi
-          echo "Image mode placeholder for devopsinfra/action-commit-push:${{ inputs.image_tag }}"
-          echo "Use ref mode for authoritative validation until image-mode harness is finalized."
+          docker pull "devopsinfra/action-commit-push:${{ inputs.image_tag }}"
+          docker run --rm \
+            -v "$PWD:/github/workspace" \
+            -v "${RUNNER_TEMP}:/github/runner_temp" \
+            -w /github/workspace \
+            -e GITHUB_WORKSPACE=/github/workspace \
+            -e GITHUB_ACTOR="${{ github.actor }}" \
+            -e GITHUB_REPOSITORY="${{ github.repository }}" \
+            -e GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}" \
+            -e GITHUB_OUTPUT=/github/runner_temp/gpg-action-output.txt \
+            -e INPUT_ORGANIZATION_DOMAIN=github.com \
+            -e INPUT_COMMIT_MESSAGE="test(commit-push): gpg signed commit" \
+            -e INPUT_TARGET_BRANCH="test/e2e-commit-push-gpg-${{ github.run_id }}" \
+            -e INPUT_SIGNING_MODE=gpg \
+            -e INPUT_SIGNING_KEY \
+            -e INPUT_SIGNING_PASSPHRASE \
+            "devopsinfra/action-commit-push:${{ inputs.image_tag }}"
 
       - name: Verify GPG commit signature
-        if: ${{ inputs.mode == 'ref' }}
+        if: ${{ inputs.mode == 'ref' || inputs.mode == 'image' }}
         run: |
           set -euo pipefail
           gpg_public_file="${RUNNER_TEMP}/gpg-public-verify.asc"
@@ -702,7 +975,7 @@ jobs:
           git verify-commit "origin/test/e2e-commit-push-gpg-${{ github.run_id }}"
 
       - name: Cleanup - delete test branch
-        if: ${{ always() && inputs.mode == 'ref' }}
+        if: ${{ always() && (inputs.mode == 'ref' || inputs.mode == 'image') }}
         run: |
           branch="test/e2e-commit-push-gpg-${{ github.run_id }}"
           if git ls-remote --exit-code --heads origin "${branch}" >/dev/null 2>&1; then
@@ -720,7 +993,6 @@ jobs:
           fetch-depth: 0
 
       - name: Generate SSH signing material
-        if: ${{ inputs.mode == 'ref' }}
         id: ssh
         run: |
           set -euo pipefail
@@ -772,18 +1044,34 @@ jobs:
             -e INPUT_SIGNING_KEY \
             triglav-action-commit-push:test
 
-      - name: SSH signing via docker image (preview)
+      - name: SSH signing via docker image
         if: ${{ inputs.mode == 'image' }}
+        env:
+          INPUT_SIGNING_KEY: ${{ steps.ssh.outputs.private_key }}
         run: |
           if [ -z "${{ inputs.image_tag }}" ]; then
             echo "image_tag is required when mode=image"
             exit 1
           fi
-          echo "Image mode placeholder for devopsinfra/action-commit-push:${{ inputs.image_tag }}"
-          echo "Use ref mode for authoritative validation until image-mode harness is finalized."
+          docker pull "devopsinfra/action-commit-push:${{ inputs.image_tag }}"
+          docker run --rm \
+            -v "$PWD:/github/workspace" \
+            -v "${RUNNER_TEMP}:/github/runner_temp" \
+            -w /github/workspace \
+            -e GITHUB_WORKSPACE=/github/workspace \
+            -e GITHUB_ACTOR="${{ github.actor }}" \
+            -e GITHUB_REPOSITORY="${{ github.repository }}" \
+            -e GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}" \
+            -e GITHUB_OUTPUT=/github/runner_temp/ssh-action-output.txt \
+            -e INPUT_ORGANIZATION_DOMAIN=github.com \
+            -e INPUT_COMMIT_MESSAGE="test(commit-push): ssh signed commit" \
+            -e INPUT_TARGET_BRANCH="test/e2e-commit-push-ssh-${{ github.run_id }}" \
+            -e INPUT_SIGNING_MODE=ssh \
+            -e INPUT_SIGNING_KEY \
+            "devopsinfra/action-commit-push:${{ inputs.image_tag }}"
 
       - name: Verify SSH commit signature
-        if: ${{ inputs.mode == 'ref' }}
+        if: ${{ inputs.mode == 'ref' || inputs.mode == 'image' }}
         run: |
           set -euo pipefail
           allowed_signers_file="${RUNNER_TEMP}/allowed_signers"
@@ -794,7 +1082,7 @@ jobs:
           git verify-commit "origin/test/e2e-commit-push-ssh-${{ github.run_id }}"
 
       - name: Cleanup - delete test branch
-        if: ${{ always() && inputs.mode == 'ref' }}
+        if: ${{ always() && (inputs.mode == 'ref' || inputs.mode == 'image') }}
         run: |
           branch="test/e2e-commit-push-ssh-${{ github.run_id }}"
           if git ls-remote --exit-code --heads origin "${branch}" >/dev/null 2>&1; then

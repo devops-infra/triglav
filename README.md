@@ -129,8 +129,8 @@ Execution modes:
 
 Current mode behavior by workflow:
 
-- `e2e-action-commit-push.yml`: `ref` authoritative, `image` placeholder preview.
-- `e2e-action-pull-request.yml`: `ref` authoritative, `image` placeholder preview.
+- `e2e-action-commit-push.yml`: `ref` and executable `image` supported.
+- `e2e-action-pull-request.yml`: `ref` and executable `image` supported.
 - `e2e-action-template-action.yml`: `ref` authoritative, `image` placeholder preview.
 - `e2e-action-container-structure-test.yml`: `ref` authoritative in reusable CI flows, `image` preview.
 - `e2e-action-format-hcl.yml`: `ref` and executable `image` supported.
