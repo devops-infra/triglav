@@ -73,7 +73,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -89,7 +89,7 @@ jobs:
 
       - name: Checkout action under test
         if: ${{ inputs.mode == 'ref' }}
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: devops-infra/action-pull-request
           ref: ${{ inputs.action_ref }}
@@ -170,7 +170,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -186,7 +186,7 @@ jobs:
 
       - name: Checkout action under test
         if: ${{ inputs.mode == 'ref' }}
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: devops-infra/action-pull-request
           ref: ${{ inputs.action_ref }}
@@ -281,7 +281,7 @@ jobs:
 
       - name: Checkout repository
         if: ${{ env.GH_PROJECT_TOKEN != '' }}
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -298,7 +298,7 @@ jobs:
 
       - name: Checkout action under test
         if: ${{ env.GH_PROJECT_TOKEN != '' && inputs.mode == 'ref' }}
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: devops-infra/action-pull-request
           ref: ${{ inputs.action_ref }}
@@ -405,7 +405,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository into custom path
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           path: work/repo
@@ -423,7 +423,7 @@ jobs:
 
       - name: Checkout action under test
         if: ${{ inputs.mode == 'ref' }}
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: devops-infra/action-pull-request
           ref: ${{ inputs.action_ref }}
@@ -509,7 +509,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -525,7 +525,7 @@ jobs:
 
       - name: Checkout action under test
         if: ${{ inputs.mode == 'ref' }}
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: devops-infra/action-pull-request
           ref: ${{ inputs.action_ref }}
