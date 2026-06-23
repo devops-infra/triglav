@@ -47,7 +47,7 @@ permissions:
 jobs:
   preflight:
     name: Validate workflow inputs
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Validate mode input
         run: |
@@ -70,7 +70,7 @@ jobs:
   basic-pull-request:
     name: Basic pull request creation
     needs: [preflight]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -167,7 +167,7 @@ jobs:
   pull-request-with-title-body:
     name: Pull request with custom title and body
     needs: [preflight]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -270,7 +270,7 @@ jobs:
     name: Pull request with project assignment
     needs: [preflight]
     if: ${{ vars.E2E_ACTION_PULL_REQUEST_PROJECT != '' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     env:
       GH_PROJECT_TOKEN: ${{ secrets.GH_PROJECT_TOKEN }}
       PROJECT_TITLE: ${{ vars.E2E_ACTION_PULL_REQUEST_PROJECT }}
@@ -402,7 +402,7 @@ jobs:
   pull-request-with-repository-path:
     name: Pull request using custom checkout path and explicit repository
     needs: [preflight]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repository into custom path
         uses: actions/checkout@v7
@@ -506,7 +506,7 @@ jobs:
   pull-request-draft-with-diff:
     name: Draft pull request with get_diff enabled
     needs: [preflight]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7

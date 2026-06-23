@@ -35,7 +35,7 @@ permissions:
 jobs:
   preflight:
     name: Validate workflow inputs
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Validate mode input
         run: |
@@ -58,7 +58,7 @@ jobs:
   validate-basic:
     name: Validate valid Terraform configuration
     needs: [preflight]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -112,7 +112,7 @@ jobs:
   validate-with-dir-filter:
     name: Validate with explicit directory filter
     needs: [preflight]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7

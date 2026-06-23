@@ -35,7 +35,7 @@ permissions:
 jobs:
   preflight:
     name: Validate workflow inputs
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Validate mode input
         run: |
@@ -58,7 +58,7 @@ jobs:
   basic-copy-vars:
     name: Copy variables from central file to modules
     needs: [preflight]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -141,7 +141,7 @@ jobs:
   copy-vars-custom-paths:
     name: Copy variables with custom directory and file paths
     needs: [preflight]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -217,7 +217,7 @@ jobs:
   copy-vars-fail-on-missing:
     name: Fail when module uses variable missing from central file
     needs: [preflight]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
