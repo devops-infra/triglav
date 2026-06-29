@@ -35,7 +35,7 @@ permissions:
 jobs:
   preflight:
     name: Validate workflow inputs
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Validate mode input
         run: |
@@ -58,7 +58,7 @@ jobs:
   text-output:
     name: Basic test with text output format
     needs: [preflight]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -111,7 +111,7 @@ jobs:
   json-output:
     name: Test with JSON output format
     needs: [preflight]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -162,7 +162,7 @@ jobs:
   junit-output:
     name: Test with JUnit output format and suite name
     needs: [preflight]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -214,7 +214,7 @@ jobs:
   test-report-file:
     name: Test with report written to file
     needs: [preflight]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -270,7 +270,7 @@ jobs:
   multiple-config-files:
     name: Test with multiple config files
     needs: [preflight]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -333,7 +333,7 @@ jobs:
   metadata-platform-runtime:
     name: Test with platform and runtime inputs
     needs: [preflight]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7

@@ -45,7 +45,7 @@ permissions:
 jobs:
   preflight:
     name: Validate workflow inputs
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Validate mode input
         run: |
@@ -68,7 +68,7 @@ jobs:
   basic-commit:
     name: Basic commit and push to new branch
     needs: [preflight]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -146,7 +146,7 @@ jobs:
   commit-with-prefix-message:
     name: Commit with custom prefix and message
     needs: [preflight]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -226,7 +226,7 @@ jobs:
   allow-empty-commit:
     name: Allow empty commit with no file changes
     needs: [preflight]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -298,7 +298,7 @@ jobs:
   commit-with-timestamp-branch:
     name: Commit to timestamped branch name
     needs: [preflight]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -374,7 +374,7 @@ jobs:
   commit-with-repository-path:
     name: Commit from custom repository_path
     needs: [preflight]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repository into custom path
         uses: actions/checkout@v7
@@ -460,7 +460,7 @@ jobs:
   commit-with-custom-identity:
     name: Commit with custom user_name and user_email
     needs: [preflight]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout action source for ref-mode validation
         if: ${{ inputs.mode == 'ref' }}
@@ -559,7 +559,7 @@ jobs:
   reset-target-branch-to-base:
     name: Reset target branch to base branch
     needs: [preflight]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -671,7 +671,7 @@ jobs:
   rebase-conflict-fails-when-strict:
     name: Rebase conflict fails when fail_on_rebase_conflict=true
     needs: [preflight]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -772,7 +772,7 @@ jobs:
   amend-commit:
     name: Amend previous commit with force-with-lease
     needs: [preflight]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -858,7 +858,7 @@ jobs:
   gpg-signed-commit:
     name: GPG-signed commit
     needs: [preflight]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -985,7 +985,7 @@ jobs:
   ssh-signed-commit:
     name: SSH-signed commit
     needs: [preflight]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
