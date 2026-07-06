@@ -362,7 +362,7 @@ jobs:
           image: alpine:3.24.1
           config: .tmp/cst-alpine.yml
           driver: docker
-          platform: linux/amd64
+          platform: linux/arm64
           runtime: runc
           output: text
 
