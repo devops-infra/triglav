@@ -32,6 +32,9 @@ on:
 permissions:
   contents: read
 
+env:
+  ALPINE_VERSION: 3.24.1
+
 jobs:
   preflight:
     name: Validate workflow inputs
@@ -64,7 +67,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Pull Alpine test image
-        run: docker pull alpine:3.24.1
+        run: docker pull alpine:${{ env.ALPINE_VERSION }}
 
       - name: Prepare shared temp directory
         run: mkdir -p .tmp
@@ -84,7 +87,7 @@ jobs:
         id: cst
         uses: devops-infra/action-container-structure-test@v1
         with:
-          image: alpine:3.24.1
+          image: alpine:${{ env.ALPINE_VERSION }}
           config: .tmp/cst-alpine.yml
           output: text
 
@@ -117,7 +120,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Pull Alpine test image
-        run: docker pull alpine:3.24.1
+        run: docker pull alpine:${{ env.ALPINE_VERSION }}
 
       - name: Prepare shared temp directory
         run: mkdir -p .tmp
@@ -137,7 +140,7 @@ jobs:
         id: cst
         uses: devops-infra/action-container-structure-test@v1
         with:
-          image: alpine:3.24.1
+          image: alpine:${{ env.ALPINE_VERSION }}
           config: .tmp/cst-alpine.yml
           output: json
 
@@ -168,7 +171,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Pull Alpine test image
-        run: docker pull alpine:3.24.1
+        run: docker pull alpine:${{ env.ALPINE_VERSION }}
 
       - name: Prepare shared temp directory
         run: mkdir -p .tmp
@@ -188,7 +191,7 @@ jobs:
         id: cst
         uses: devops-infra/action-container-structure-test@v1
         with:
-          image: alpine:3.24.1
+          image: alpine:${{ env.ALPINE_VERSION }}
           config: .tmp/cst-alpine.yml
           output: junit
           junit_suite_name: e2e-alpine-tests
@@ -220,7 +223,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Pull Alpine test image
-        run: docker pull alpine:3.24.1
+        run: docker pull alpine:${{ env.ALPINE_VERSION }}
 
       - name: Prepare shared temp directory
         run: mkdir -p .tmp
@@ -240,7 +243,7 @@ jobs:
         id: cst
         uses: devops-infra/action-container-structure-test@v1
         with:
-          image: alpine:3.24.1
+          image: alpine:${{ env.ALPINE_VERSION }}
           config: .tmp/cst-alpine.yml
           output: json
           test_report: .tmp/cst-report.json
@@ -276,7 +279,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Pull Alpine test image
-        run: docker pull alpine:3.24.1
+        run: docker pull alpine:${{ env.ALPINE_VERSION }}
 
       - name: Prepare shared temp directory
         run: mkdir -p .tmp
@@ -304,7 +307,7 @@ jobs:
         id: cst
         uses: devops-infra/action-container-structure-test@v1
         with:
-          image: alpine:3.24.1
+          image: alpine:${{ env.ALPINE_VERSION }}
           config: |
             .tmp/cst-alpine.yml
             .tmp/cst-alpine-secondary.yml
@@ -339,7 +342,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Pull Alpine test image
-        run: docker pull alpine:3.24.1
+        run: docker pull alpine:${{ env.ALPINE_VERSION }}
 
       - name: Prepare shared temp directory
         run: mkdir -p .tmp
@@ -359,7 +362,7 @@ jobs:
         id: cst
         uses: devops-infra/action-container-structure-test@v1
         with:
-          image: alpine:3.24.1
+          image: alpine:${{ env.ALPINE_VERSION }}
           config: .tmp/cst-alpine.yml
           driver: docker
           platform: linux/arm64
