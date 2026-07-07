@@ -256,7 +256,7 @@ tasks:
         found_refs=0
         while IFS= read -r file; do
           [ -n "$file" ] || continue
-          if grep -Eq 'alpine:[0-9]+\.[0-9]+\.[0-9]+|expectedOutput:[[:space:]]*\[VERSION_ID=[0-9]+(\\?\.[0-9]+){2}\]' "$file"; then
+          if grep -Eq 'alpine:[0-9]+\.[0-9]+\.[0-9]+|ALPINE_VERSION:[[:space:]]*[0-9]+\.[0-9]+\.[0-9]+|expectedOutput:[[:space:]]*\[VERSION_ID=[0-9]+(\\?\.[0-9]+){2}\]' "$file"; then
             found_refs=1
             break
           fi
@@ -273,6 +273,7 @@ tasks:
           before_file=".tmp/alpine-update-before"
           cp "$file" "$before_file"
           perl -0pi -e 's/alpine:\d+\.\d+\.\d+/alpine:'"$latest_alpine"'/g' "$file"
+          perl -0pi -e 's/(ALPINE_VERSION:\s*)\d+\.\d+\.\d+/${1}'"$latest_alpine"'/g' "$file"
           if printf '%s\n' "$file" | grep -Eq '^tests/.*\.ya?ml$'; then
             perl -0pi -e 's/expectedOutput:\s*\[VERSION_ID=\d+(?:\\?\.\d+){2}\]/expectedOutput: [VERSION_ID='"$escaped_alpine"']/g' "$file"
           fi
@@ -300,6 +301,13 @@ tasks:
           if [ -n "$stale_e2e_alpine_refs" ]; then
             echo "ERROR: Found stale Alpine image references in E2E workflow or fixture files"
             printf '%s\n' "$stale_e2e_alpine_refs"
+            exit 1
+          fi
+
+          stale_e2e_alpine_vars="$(xargs grep -Eno 'ALPINE_VERSION:[[:space:]]*[0-9]+\.[0-9]+\.[0-9]+' < "$e2e_files" 2>/dev/null | grep -Fv "ALPINE_VERSION: ${latest_alpine}" || true)"
+          if [ -n "$stale_e2e_alpine_vars" ]; then
+            echo "ERROR: Found stale ALPINE_VERSION declarations in E2E workflow or fixture files"
+            printf '%s\n' "$stale_e2e_alpine_vars"
             exit 1
           fi
 
