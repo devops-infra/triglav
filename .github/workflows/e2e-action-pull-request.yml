@@ -399,6 +399,129 @@ jobs:
           fi
           git push origin --delete test/e2e-pr-project-${{ github.run_id }} 2>/dev/null || true
 
+  pull-request-with-created-labels:
+    name: Pull request with created labels
+    needs: [preflight]
+    runs-on: ubuntu-24.04-arm
+    env:
+      TEST_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+      TEST_LABEL: zzz-e2e/action-pull-request-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Create test branch with a commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b test/e2e-pr-labels-${TEST_ID}
+          echo "E2E PR label creation test $(date -u)" > e2e-pr-label-test.txt
+          git add -f e2e-pr-label-test.txt
+          git commit -m "test(pull-request): label creation PR test"
+          git push origin test/e2e-pr-labels-${TEST_ID}
+
+      - name: Checkout action under test
+        if: ${{ inputs.mode == 'ref' }}
+        uses: actions/checkout@v7
+        with:
+          repository: devops-infra/action-pull-request
+          ref: ${{ inputs.action_ref }}
+          path: .tmp/action-pull-request
+
+      - name: Create pull request with created labels
+        if: ${{ inputs.mode == 'ref' }}
+        id: pr
+        uses: ./.tmp/action-pull-request
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          title: "test(pull-request): label creation test - safe to close"
+          body: "Automated end-to-end test for missing label creation."
+          target_branch: master
+          label: ${{ env.TEST_LABEL }}
+          create_missing_labels: "true"
+
+      - name: Create pull request via docker image
+        if: ${{ inputs.mode == 'image' }}
+        env:
+          ACTION_IMAGE: devopsinfra/action-pull-request:${{ inputs.image_tag }}
+        run: |
+          if [ -z "${{ inputs.image_tag }}" ]; then
+            echo "image_tag is required when mode=image"
+            exit 1
+          fi
+          mkdir -p .tmp
+          : > .tmp/e2e-pr-labels.outputs
+          docker pull "${ACTION_IMAGE}"
+          docker run --rm \
+            -e GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}" \
+            -e GITHUB_REPOSITORY="${{ github.repository }}" \
+            -e GITHUB_WORKSPACE=/github/workspace \
+            -e GITHUB_ACTOR="${{ github.actor }}" \
+            -e GITHUB_OUTPUT=/github/workspace/.tmp/e2e-pr-labels.outputs \
+            -e INPUT_GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}" \
+            -e INPUT_SOURCE_BRANCH="test/e2e-pr-labels-${TEST_ID}" \
+            -e INPUT_TITLE="test(pull-request): label creation test - safe to close" \
+            -e INPUT_BODY="Automated end-to-end test for missing label creation." \
+            -e INPUT_TARGET_BRANCH=master \
+            -e INPUT_LABEL="${TEST_LABEL}" \
+            -e INPUT_CREATE_MISSING_LABELS=true \
+            -v "$PWD:/github/workspace" \
+            -w /github/workspace \
+            "${ACTION_IMAGE}"
+
+      - name: Verify outputs
+        if: ${{ inputs.mode == 'ref' }}
+        run: |
+          echo "url=${{ steps.pr.outputs.url }}"
+          echo "pr_number=${{ steps.pr.outputs.pr_number }}"
+          test -n "${{ steps.pr.outputs.url }}"
+          test -n "${{ steps.pr.outputs.pr_number }}"
+
+      - name: Verify outputs from docker image
+        if: ${{ inputs.mode == 'image' }}
+        run: |
+          URL="$(sed -n 's/^url=//p' .tmp/e2e-pr-labels.outputs | tail -1)"
+          PR_NUMBER="$(sed -n 's/^pr_number=//p' .tmp/e2e-pr-labels.outputs | tail -1)"
+          echo "url=${URL}"
+          echo "pr_number=${PR_NUMBER}"
+          test -n "${URL}"
+          test -n "${PR_NUMBER}"
+
+      - name: Verify label assignment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ steps.pr.outputs.pr_number }}"
+          if [ -z "$PR_NUMBER" ] && [ -f .tmp/e2e-pr-labels.outputs ]; then
+            PR_NUMBER="$(sed -n 's/^pr_number=//p' .tmp/e2e-pr-labels.outputs | tail -1)"
+          fi
+          test -n "${PR_NUMBER}"
+
+          LABEL_FOUND="$(
+            gh pr view "$PR_NUMBER" --repo "${{ github.repository }}" --json labels \
+              | jq -r --arg label "${TEST_LABEL}" 'any(.labels[]?; .name == $label)'
+          )"
+
+          test "${LABEL_FOUND}" = "true"
+
+      - name: Cleanup - close PR, delete label, and delete test branch
+        if: ${{ always() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ steps.pr.outputs.pr_number }}"
+          if [ -z "$PR_NUMBER" ] && [ -f .tmp/e2e-pr-labels.outputs ]; then
+            PR_NUMBER="$(sed -n 's/^pr_number=//p' .tmp/e2e-pr-labels.outputs | tail -1)"
+          fi
+          if [ -n "$PR_NUMBER" ]; then
+            gh pr close "$PR_NUMBER" --repo "${{ github.repository }}" 2>/dev/null || true
+          fi
+          ENCODED_LABEL="$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "${TEST_LABEL}")"
+          gh api --method DELETE "repos/${{ github.repository }}/labels/${ENCODED_LABEL}" 2>/dev/null || true
+          git push origin --delete test/e2e-pr-labels-${TEST_ID} 2>/dev/null || true
+
   pull-request-with-repository-path:
     name: Pull request using custom checkout path and explicit repository
     needs: [preflight]
