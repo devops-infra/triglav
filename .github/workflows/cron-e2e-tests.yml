@@ -2,7 +2,7 @@ name: (C) End-to-End Tests
 
 on:
   schedule:
-    - cron: 0 6 * * 3
+    - cron: 0 6 * * 5
   workflow_dispatch:
     inputs:
       mode:
