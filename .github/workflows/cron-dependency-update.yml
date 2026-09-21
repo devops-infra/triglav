@@ -16,4 +16,6 @@ jobs:
     uses: devops-infra/.github/.github/workflows/reusable-cron-dependency-update.yml@v1
     with:
       profile: other
-    secrets: inherit
+    secrets:
+      PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
+      SSH_SIGNING_KEY: ${{ secrets.SSH_SIGNING_KEY }}
